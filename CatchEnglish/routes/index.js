@@ -30,4 +30,9 @@ router.post('/signup', function(req, res, next) {
     res.redirect('/login.html');
 });
 
+/* GET waitingRoom page. */
+router.get('/waitingRoom.html', function(req, res, next) {
+  res.sendFile(path.join(__dirname, '../views/waitingRoom.html'));
+});
+
 module.exports = router;
