@@ -35,4 +35,8 @@ router.get('/waitingRoom.html', function(req, res, next) {
   res.sendFile(path.join(__dirname, '../views/waitingRoom.html'));
 });
 
+router.get('/gameRoom.html', function(req, res, next) {
+    res.sendFile(path.join(__dirname, '../views/gameRoom.html'));
+});
+
 module.exports = router;
