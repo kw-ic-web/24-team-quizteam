@@ -5,12 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Start</title>
     <link rel="stylesheet" href="/stylesheets/start.css" />
-    
 </head>
 <body>
     <div class="container">
         <img class="title-logo" src="/images/logo.png" alt="게임 로고" />
-        <button class="start-button">Game Start!</button>
+        <button class="start-button" id="startButton">Game Start!</button>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert("로그인이 필요합니다.");
+                window.location.href = "/login.html";
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/users/start.html', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("인증에 실패했습니다.");
+                }
+
+                console.log("인증 성공: 게임을 시작할 수 있습니다.");
+            } catch (error) {
+                alert(error.message);
+                window.location.href = "/login.html";
+            }
+        });
+    </script>
 </body>
 </html>
