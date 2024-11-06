@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Page</title>
-<link rel="stylesheet" href="/stylesheets/gameRoom.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Page</title>
+  <link rel="stylesheet" href="/stylesheets/gameRoom.css">
 </head>
 <body>
   <div class="container">
@@ -28,16 +28,8 @@
     </div>
 
     <div class="question-container">
-      <div class="question">
-        Q1. The company has a rule ______ entrance to the warehouse without official authorization.
-      </div>
-    
-      <div class="options">
-        <div class="option">(A) prohibited</div>
-        <div class="option">(B) prohibiting</div>
-        <div class="option">(C) prohibit</div>
-        <div class="option">(D) prohibits</div>
-      </div>
+      <div class="question" id="question-text"></div>
+      <div class="options" id="options-container"></div>
     </div>
 
     <div class="second_container">
@@ -50,12 +42,14 @@
         <h3>현재 순위</h3>
         <ul class="ranking-list">
           <li>Player1 - 100</li>
-          <li>Player1 - 90</li>
-          <li>Player1 - 80</li>
-          <li>Player1 - 70</li>
+          <li>Player2 - 90</li>
+          <li>Player3 - 80</li>
+          <li>Player4 - 70</li>
         </ul>
       </div>
     </div>
   </div>
+
+  <script src="/javascripts/gameRoom.js"></script>
 </body>
 </html>

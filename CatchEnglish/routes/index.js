@@ -22,6 +22,10 @@ router.get('/login.html', function(req, res, next) {
     res.sendFile(path.join(__dirname, '../views/login.html'));
 });
 
+router.get('/ranking.html', function(req, res, next) {
+    res.sendFile(path.join(__dirname, '../views/ranking.html'));
+});
+
 /* POST signup route - 회원가입 처리 */
 router.post('/signup', function(req, res, next) {
     // 회원가입 처리 로직 추가 (예: 데이터베이스에 사용자 정보 저장)

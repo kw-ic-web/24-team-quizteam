@@ -20,18 +20,13 @@
         <div class="title-button-group">
             <h1>Waiting Room</h1>
             <div class="button-group">
-                <button class="create-room-btn" onclick="createRoom()">방 만들기</button>
+                <button class="create-room-btn">방 만들기</button>
                 <button class="quick-enter-btn">바로 입장</button>
             </div>
         </div>
     
         <div id="rooms-container" class="rooms-container">
-            <div class="room-slot"></div>
-            <div class="room-slot"></div>
-            <div class="room-slot"></div>
-            <div class="room-slot"></div>
-            <div class="room-slot"></div>
-            <div class="room-slot"></div>
+            <!-- 6개의 빈 방 슬롯 -->
         </div>
     
         <div class="pagination">
@@ -40,17 +35,33 @@
         </div>
     </div>
 
-    <!-- 모달 구조 -->
-    <div class="modal" id="characterModal">
+    <!-- 방 생성 모달 -->
+    <div class="modal" id="roomCreationModal">
         <div class="modal-content">
-            <h2>캐릭터 선택</h2>
-            <div class="character-options">
-                <img src="/images/character_A.png" alt="Character A" class="character-option" data-image="/images/character_A.png">
-                <img src="/images/character_B.png" alt="Character B" class="character-option" data-image="/images/character_B.png">
-                <img src="/images/character_C.png" alt="Character C" class="character-option" data-image="/images/character_C.png">
-                <img src="/images/character_D.png" alt="Character D" class="character-option" data-image="/images/character_D.png">
+            <div class="form-section">
+                <label for="roomName">방 이름</label>
+                <input type="text" id="roomName" placeholder="방 이름을 입력하세요">
             </div>
-            <button class="close-btn" id="closeModal">닫기</button>
+            <div class="game-type-section">
+                <label>게임 유형</label>
+                <div class="button-group">
+                    <button class="game-type-btn" data-type="문장 재배열">문장 재배열</button>
+                    <button class="game-type-btn" data-type="단어 맞히기">단어 맞히기</button>
+                    <button class="game-type-btn" data-type="어법 고르기">어법 고르기</button>
+                </div>
+            </div>
+            <div class="difficulty-section">
+                <label>난이도</label>
+                <div class="button-group">
+                    <button class="difficulty-btn difficulty-hard" data-difficulty="어려움">어려움</button>
+                    <button class="difficulty-btn difficulty-medium" data-difficulty="보통">보통</button>
+                    <button class="difficulty-btn difficulty-easy" data-difficulty="쉬움">쉬움</button>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="create-btn" id="createRoomBtn">생성하기</button>
+                <button class="cancel-btn" id="cancelRoomBtn">취소</button>
+            </div>
         </div>
     </div>
 
