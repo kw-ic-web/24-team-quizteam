@@ -22,28 +22,27 @@ document.addEventListener("DOMContentLoaded", function () {
     fetch('/api/users/userinfo', {
         method: 'GET',
         headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`, // 로컬 스토리지에서 토큰 가져오기
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
     })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("사용자 정보를 가져오지 못했습니다.");
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data && data.userid) {
-                userName = data.userid; // API에서 가져온 사용자 ID
-                usernameElement.textContent = `${userName} 님`;
-            } else {
-                usernameElement.textContent = "알 수 없음 님";
-            }
-        })
-        .catch(error => {
-            console.error("사용자 정보 요청 중 오류:", error);
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("사용자 정보를 가져오지 못했습니다.");
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data && data.userid) {
+            usernameElement.textContent = `${data.userid} 님`;
+            profileIcon.src = `/images/character_${data.character}.png?timestamp=${Date.now()}`; // 캐릭터 이미지 업데이트
+        } else {
             usernameElement.textContent = "알 수 없음 님";
-        });
+        }
+    })
+    .catch(error => {
+        console.error("사용자 정보 요청 중 오류:", error);
+        usernameElement.textContent = "알 수 없음 님";
+    });
 
     function initializeEmptySlots() {
         roomsContainer.innerHTML = "";
@@ -184,15 +183,58 @@ document.addEventListener("DOMContentLoaded", function () {
     characterModal.addEventListener("click", (event) => {
         if (event.target.classList.contains("character-option")) {
             const selectedCharacter = event.target.getAttribute("data-character");
-            profileIcon.src = `/images/character_${selectedCharacter}.png`;
-            characterModal.style.display = "none";
+    
+            // 서버에 캐릭터 업데이트 요청
+            fetch('/api/users/update-character', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ character: selectedCharacter })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("캐릭터 업데이트 실패");
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("캐릭터가 업데이트되었습니다:", data);
+    
+                // 업데이트 후 사용자 정보 재요청
+                return fetch('/api/users/userinfo', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                profileIcon.src = `/images/character_${data.character}.png?timestamp=${Date.now()}`; // 캐릭터 업데이트
+            })
+            .catch(error => {
+                console.error("캐릭터 업데이트 중 오류:", error);
+            });
         }
     });
+    
 
     characterModal.querySelector("#closeCharacterModal").addEventListener("click", () => {
         characterModal.style.display = "none";
     });
 
+    //로그아웃
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem('token');
+        window.location.href = "/login.html";
+    });
+
     initializeEmptySlots();
     updateRoomsDisplay();
 });
+
+
