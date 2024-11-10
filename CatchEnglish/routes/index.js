@@ -1,6 +1,9 @@
-var express = require('express');
-var path = require('path');
-var router = express.Router();
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const path = require('path'); 
+const User = require('../mongoose/schemas/user');
+const router = express.Router();
+require('dotenv').config();
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -38,6 +41,7 @@ router.post('/signup', function(req, res, next) {
 router.get('/waitingRoom.html', function(req, res, next) {
   res.sendFile(path.join(__dirname, '../views/waitingRoom.html'));
 });
+
 
 router.get('/gameRoom.html', function(req, res, next) {
     res.sendFile(path.join(__dirname, '../views/gameRoom.html'));

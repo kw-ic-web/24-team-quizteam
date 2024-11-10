@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const router = express.Router();
 const path = require('path');
+require("dotenv").config();
 
 const SECRET_KEY = "your_secret_key";  // JWT 생성 시 사용할 비밀 키 (환경 변수로 설정하는 것이 좋습니다)
 
@@ -95,5 +96,21 @@ function verifyToken(req, res, next) {
 router.get("/start.html", verifyToken, (req, res) => {
     res.sendFile(path.join(__dirname, '../../views/start.html'));
 });
+
+// 사용자의 ID 정보를 반환하는 API
+router.get("/userinfo", verifyToken, async (req, res) => {
+    try {
+        const { userid } = req.user; // verifyToken 미들웨어에서 토큰에서 추출한 userid
+        const user = await User.findOne({ userid }); // 데이터베이스에서 사용자 조회
+        if (!user) {
+            return res.status(404).json({ error: "사용자를 찾을 수 없습니다." });
+        }
+        res.json({ userid: user.userid }); // 사용자 ID 반환
+    } catch (error) {
+        console.error("사용자 정보를 가져오는 중 오류:", error);
+        res.status(500).json({ error: "서버 오류가 발생했습니다." });
+    }
+});
+
 
 module.exports = router;

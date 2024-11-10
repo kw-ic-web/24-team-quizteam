@@ -7,13 +7,43 @@ document.addEventListener("DOMContentLoaded", function () {
     const roomNameInput = document.getElementById("roomName");
     const prevBtn = document.querySelector(".prev-btn");
     const nextBtn = document.querySelector(".next-btn");
-    const userName = "USER"; // 방장 이름 설정
+    const profileIcon = document.getElementById("profileIcon");
+    const editorIcon = document.getElementById("editorIcon");
+    const usernameElement = document.querySelector(".username");
+    let userName = "USER";
 
     let selectedGameType = null;
     let selectedDifficulty = null;
     let rooms = [];
     const roomsPerPage = 6;
     let currentPage = 0;
+
+    // 로그인한 사용자의 ID 가져오기
+    fetch('/api/users/userinfo', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`, // 로컬 스토리지에서 토큰 가져오기
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("사용자 정보를 가져오지 못했습니다.");
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.userid) {
+                userName = data.userid; // API에서 가져온 사용자 ID
+                usernameElement.textContent = `${userName} 님`;
+            } else {
+                usernameElement.textContent = "알 수 없음 님";
+            }
+        })
+        .catch(error => {
+            console.error("사용자 정보 요청 중 오류:", error);
+            usernameElement.textContent = "알 수 없음 님";
+        });
 
     function initializeEmptySlots() {
         roomsContainer.innerHTML = "";
@@ -128,6 +158,40 @@ document.addEventListener("DOMContentLoaded", function () {
             default: return "";
         }
     }
+
+    // 캐릭터 선택 기능 추가
+    const characterModal = document.createElement("div");
+    characterModal.id = "characterModal";
+    characterModal.className = "modal";
+    characterModal.innerHTML = `
+        <div class="modal-content">
+            <h2>캐릭터 선택</h2>
+            <div class="character-options">
+                <img src="/images/character_A.png" alt="Character A" class="character-option" data-character="A">
+                <img src="/images/character_B.png" alt="Character B" class="character-option" data-character="B">
+                <img src="/images/character_C.png" alt="Character C" class="character-option" data-character="C">
+                <img src="/images/character_D.png" alt="Character D" class="character-option" data-character="D">
+            </div>
+            <button id="closeCharacterModal" class="cancel-btn">닫기</button>
+        </div>
+    `;
+    document.body.appendChild(characterModal);
+
+    editorIcon.addEventListener("click", () => {
+        characterModal.style.display = "flex";
+    });
+
+    characterModal.addEventListener("click", (event) => {
+        if (event.target.classList.contains("character-option")) {
+            const selectedCharacter = event.target.getAttribute("data-character");
+            profileIcon.src = `/images/character_${selectedCharacter}.png`;
+            characterModal.style.display = "none";
+        }
+    });
+
+    characterModal.querySelector("#closeCharacterModal").addEventListener("click", () => {
+        characterModal.style.display = "none";
+    });
 
     initializeEmptySlots();
     updateRoomsDisplay();

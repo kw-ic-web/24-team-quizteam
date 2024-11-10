@@ -1,5 +1,6 @@
 // mongoose/index.js
 const mongoose = require("mongoose");
+require('dotenv').config();
 
 const connect = async () => {
     if (process.env.NODE_ENV !== 'production') {
