@@ -59,6 +59,32 @@ const questions = [
       alert("오답입니다. 다시 시도하세요!");
     }
   }
+  function updateScore(isCorrect) {
+    if (isCorrect) {
+        fetch('/api/users/increment-correct-answers', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+        }).catch(error => console.error("점수 업데이트 오류:", error));
+    }
+}
+
+function endGame() {
+    fetch('/api/users/end-game', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+    })
+        .then(response => response.json())
+        .then(data => {
+            alert(`게임 종료! 맞춘 문제 수: ${data.score}`);
+            window.location.href = `/ranking.html?score=${data.score}`;
+        })
+        .catch(error => console.error("게임 종료 중 오류:", error));
+}
+
   
   // 페이지 로드 시 첫 번째 문제를 표시
   document.addEventListener("DOMContentLoaded", loadQuestion);

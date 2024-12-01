@@ -7,7 +7,8 @@ const userSchema = new mongoose.Schema({
     dob: { type: Date, required: true },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
-    character: { type: String } 
+    character: { type: String },
+    correctAnswers:{type:Number,default:0} 
 });
 
 const User = mongoose.model("User", userSchema);

@@ -141,4 +141,57 @@ router.post("/update-character", verifyToken, async (req, res) => {
     }
 });
 
+// 순위 데이터 반환 API
+router.get("/ranking", verifyToken, async (req, res) => {
+    try {
+        const users = await User.find({}, "userid name correctAnswers")
+            .sort({ correctAnswers: -1 }) // 맞춘 문제 순으로 내림차순 정렬
+            .limit(10); // 상위 10명만 반환
+
+        res.status(200).json(users);
+    } catch (error) {
+        console.error("순위 데이터 가져오기 오류:", error);
+        res.status(500).json({ error: "순위 데이터를 가져오는 중 오류가 발생했습니다." });
+    }
+});
+
+
+router.post("/increment-correct-answers", verifyToken, async (req, res) => {
+    const { userid } = req.user;
+
+    try {
+        await User.updateOne({ userid }, { $inc: { correctAnswers: 1 } });
+        res.status(200).json({ message: "정답 점수 증가 완료" });
+    } catch (error) {
+        console.error("점수 증가 중 오류:", error);
+        res.status(500).json({ error: "점수 증가 중 서버 오류 발생" });
+    }
+});
+
+router.post("/end-game", verifyToken, async (req, res) => {
+    const { userid } = req.user;
+    const { isCorrect } = req.body; // 마지막 정답 여부
+
+    try {
+        // 마지막 정답 점수 증가
+        if (isCorrect) {
+            await User.updateOne({ userid }, { $inc: { correctAnswers: 1 } });
+        }
+
+        // 최종 점수 가져오기
+        const user = await User.findOne({ userid });
+        const score = user.correctAnswers;
+
+        // 점수 초기화
+        await User.updateOne({ userid }, { correctAnswers: 0 });
+
+        res.status(200).json({ message: "게임 종료", score });
+    } catch (error) {
+        console.error("게임 종료 중 오류:", error);
+        res.status(500).json({ error: "게임 종료 실패" });
+    }
+});
+
+
+
 module.exports = router;
