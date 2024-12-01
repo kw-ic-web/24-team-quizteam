@@ -173,11 +173,6 @@ router.post("/end-game", verifyToken, async (req, res) => {
     const { isCorrect } = req.body; // 마지막 정답 여부
 
     try {
-        // 마지막 정답 점수 증가
-        if (isCorrect) {
-            await User.updateOne({ userid }, { $inc: { correctAnswers: 1 } });
-        }
-
         // 최종 점수 가져오기
         const user = await User.findOne({ userid });
         const score = user.correctAnswers;

@@ -39,29 +39,31 @@ function loadQuestion() {
 // 점수 업데이트 함수
 function updateScore(isCorrect) {
   if (isCorrect) {
-    fetch('/api/users/increment-correct-answers', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    }).catch(error => console.error("점수 업데이트 오류:", error));
+      fetch('/api/users/increment-correct-answers', {
+          method: 'POST',
+          headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+      }).catch(error => console.error("점수 업데이트 오류:", error));
   }
 }
 
 // 게임 종료 함수
 function endGame() {
   fetch('/api/users/end-game', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-    },
+      method: 'POST',
+      headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ isCorrect: true }) // 마지막 정답 상태 전달
   })
-    .then(response => response.json())
-    .then(data => {
-      alert(`게임 종료! 맞춘 문제 수: ${data.score}`);
-      window.location.href = `/ranking.html?score=${data.score}`;
-    })
-    .catch(error => console.error("게임 종료 중 오류:", error));
+      .then(response => response.json())
+      .then(data => {
+          alert(`게임 종료! 맞춘 문제 수: ${data.score}`);
+          window.location.href = `/ranking.html?score=${data.score}`;
+      })
+      .catch(error => console.error("게임 종료 오류:", error));
 }
 
 // 사용자가 답안을 선택했을 때의 동작
@@ -71,15 +73,15 @@ function selectOption(selectedIndex) {
   updateScore(isCorrect);
 
   if (isCorrect) {
-    alert("정답입니다!");
-    currentQuestionIndex++;
-    if (currentQuestionIndex < questions.length) {
-      loadQuestion();
-    } else {
-      endGame(); // 게임 종료
-    }
+      alert("정답입니다!");
+      currentQuestionIndex++;
+      if (currentQuestionIndex < questions.length) {
+          loadQuestion();
+      } else {
+          endGame(); // 게임 종료
+      }
   } else {
-    alert("오답입니다. 다시 시도하세요!");
+      alert("오답입니다. 다시 시도하세요!");
   }
 }
 
