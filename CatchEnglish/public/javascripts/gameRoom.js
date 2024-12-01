@@ -36,17 +36,47 @@ function loadQuestion() {
   });
 }
 
+// 점수 업데이트 함수
+function updateScore(isCorrect) {
+  if (isCorrect) {
+    fetch('/api/users/increment-correct-answers', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    }).catch(error => console.error("점수 업데이트 오류:", error));
+  }
+}
+
+// 게임 종료 함수
+function endGame() {
+  fetch('/api/users/end-game', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+  })
+    .then(response => response.json())
+    .then(data => {
+      alert(`게임 종료! 맞춘 문제 수: ${data.score}`);
+      window.location.href = `/ranking.html?score=${data.score}`;
+    })
+    .catch(error => console.error("게임 종료 중 오류:", error));
+}
+
 // 사용자가 답안을 선택했을 때의 동작
 function selectOption(selectedIndex) {
   const currentQuestion = questions[currentQuestionIndex];
-  if (currentQuestion.answer === currentQuestion.choices[selectedIndex]) {
+  const isCorrect = currentQuestion.answer === currentQuestion.choices[selectedIndex];
+  updateScore(isCorrect);
+
+  if (isCorrect) {
     alert("정답입니다!");
     currentQuestionIndex++;
     if (currentQuestionIndex < questions.length) {
       loadQuestion();
     } else {
-      alert("퀴즈가 끝났습니다!");
-      location.href = 'ranking.html'; // 퀴즈 완료 시 순위 페이지로 이동
+      endGame(); // 게임 종료
     }
   } else {
     alert("오답입니다. 다시 시도하세요!");
