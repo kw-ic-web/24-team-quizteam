@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quiz Page</title>
+  <script src="/socket.io/socket.io.js"></script>
   <link rel="stylesheet" href="/stylesheets/gameRoom.css">
 </head>
 <body>
@@ -29,13 +30,13 @@
 
     <div class="question-container">
       <div class="question" id="question-text"></div>
-      <div class="options" id="options-container"></div>
+      <div class="choices" id="choices"></div> <!-- 보기 컨테이너 추가 -->
     </div>
 
     <div class="second_container">
       <div class="chat">
-        <div class="chat-message">Player1: 파이팅 해봐요</div>
-        <input type="text" class="input-box" placeholder="Type your message...">
+        <div class="chat-messages" id="chat-messages"></div>
+        <input type="text" class="input-box" placeholder="Type your answer..." />
       </div>
   
       <div class="ranking">

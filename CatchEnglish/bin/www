@@ -1,30 +1,90 @@
 #!/usr/bin/env node
 
-/**
- * Module dependencies.
- */
-
-var app = require('../app');
-var debug = require('debug')('catchenglish:server');
-var http = require('http');
+const app = require('../app'); // Express 애플리케이션 인스턴스 가져옴
+const debug = require('debug')('catchenglish:server');
+const http = require('http');
+const socketIo = require('socket.io');
+const Question = require('../mongoose/schemas/quiz'); // 문제 스키마 불러오기
 
 /**
  * Get port from environment and store in Express.
  */
-
-var port = normalizePort(process.env.PORT || '3000');
+const port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
 /**
  * Create HTTP server.
  */
+const server = http.createServer(app);
 
-var server = http.createServer(app);
+/**
+ * Integrate Socket.io with the server.
+ */
+const io = socketIo(server, {
+    cors: {
+        origin: '*', // 필요시 클라이언트 주소로 변경
+        methods: ['GET', 'POST']
+    }
+});
+
+/**
+ * Socket.io event handlers.
+ */
+io.on('connection', (socket) => {
+    console.log('Socket connected:', socket.id);
+
+    // 채팅 메시지 처리
+    socket.on('chat message', (msg) => {
+        console.log('Received chat message:', msg);
+
+        // 받은 메시지를 모든 클라이언트로 전달
+        io.emit('chat message', msg);
+    });
+
+    // 정답 확인 요청 처리
+    socket.on('check answer', async ({ answer, userId }) => {
+        console.log(`User ${userId} submitted answer: ${answer}`);
+
+        try {
+            // 현재 문제를 데이터베이스에서 조회 (예: currentQuestionIndex는 클라이언트에서 전달됨)
+            const currentQuestionIndex = 0; // 임시 값, 실제 값은 클라이언트에서 가져와야 함
+            const question = await Question.findOne().skip(currentQuestionIndex);
+
+            if (!question) {
+                socket.emit('answer result', { isCorrect: false, userId });
+                console.error("문제를 찾을 수 없습니다.");
+                return;
+            }
+
+            const isCorrect = question.answer === answer; // 정답 비교
+            socket.emit('answer result', { isCorrect, userId });
+
+            if (isCorrect) {
+                io.emit('chat message', { userId: 'System', message: `${userId}님이 정답을 맞췄습니다!` });
+            } else {
+                io.emit('chat message', { userId: 'System', message: `${userId}님이 오답을 제출했습니다.` });
+            }
+        } catch (error) {
+            console.error('Error during answer validation:', error);
+            socket.emit('answer result', { isCorrect: false, userId });
+        }
+    });
+
+    // 게임 종료 처리
+    socket.on('end game', ({ userId }) => {
+        console.log(`${userId}님이 게임을 종료했습니다.`);
+        io.emit('chat message', { userId: 'System', message: `${userId}님이 게임을 종료했습니다.` });
+    });
+
+    // 연결 해제 처리
+    socket.on('disconnect', () => {
+        console.log(`Socket disconnected: ${socket.id}`);
+    });
+});
 
 /**
  * Listen on provided port, on all network interfaces.
  */
-
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
@@ -32,59 +92,40 @@ server.on('listening', onListening);
 /**
  * Normalize a port into a number, string, or false.
  */
-
 function normalizePort(val) {
-  var port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
-  return false;
+    const port = parseInt(val, 10);
+    if (isNaN(port)) return val;
+    if (port >= 0) return port;
+    return false;
 }
 
 /**
  * Event listener for HTTP server "error" event.
  */
-
 function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
-  }
+    if (error.syscall !== 'listen') throw error;
 
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
+    const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
 
-  // handle specific listen errors with friendly messages
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
+    switch (error.code) {
+        case 'EACCES':
+            console.error(bind + ' requires elevated privileges');
+            process.exit(1);
+            break;
+        case 'EADDRINUSE':
+            console.error(bind + ' is already in use');
+            process.exit(1);
+            break;
+        default:
+            throw error;
+    }
 }
 
 /**
  * Event listener for HTTP server "listening" event.
  */
-
 function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
-  debug('Listening on ' + bind);
+    const addr = server.address();
+    const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
+    debug('Listening on ' + bind);
 }
