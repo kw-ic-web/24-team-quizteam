@@ -1,5 +1,6 @@
 const { Server } = require('socket.io');
 const userMap = new Map(); // socket.id와 userid 매핑
+const rooms = [];
 
 const socketHandler = (server) => {
     const io = new Server(server, {
@@ -40,6 +41,29 @@ const socketHandler = (server) => {
                 console.warn(`연결 해제된 사용자: socket.id=${socket.id} (userid 없음)`);
             }
             console.log("사용자가 연결 해제되었습니다:", socket.id);
+        });
+
+        socket.on("createRoom", (roomData) => {
+            const roomId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const newRoom = {
+                id: roomId,
+                ...roomData,
+                participants: [{ userId: roomData.host }],
+            };
+
+            rooms.push(newRoom);
+
+
+            // 방 생성자에게만 게임 방으로 이동 명령
+            socket.emit("roomJoined", newRoom);
+
+            // 모든 사용자에게 방 생성 알림
+            io.emit("roomCreated", newRoom);
+        });
+
+        // 방 목록 요청
+        socket.on("requestRoomList", () => {
+            socket.emit("updateRoomList", rooms);
         });
     });
 };

@@ -3,10 +3,7 @@ const Room = require("../../mongoose/schemas/room");
 const { verifyToken } = require("../middlewares");
 const router = express.Router();
 
-/**
- * 방 생성 API
- */
-router.post("/create", verifyToken, async (req, res) => {
+router.post('/create', verifyToken, async (req, res) => {
     const { title, gameType, difficulty } = req.body;
     const { userid } = req.user;
 
@@ -17,43 +14,36 @@ router.post("/create", verifyToken, async (req, res) => {
             difficulty,
             participants: [{ userId: userid }],
         });
+
+        console.log('방 생성 완료:', newRoom);
+
         res.status(201).json({ roomId: newRoom._id });
     } catch (error) {
-        console.error("방 생성 오류:", error);
-        res.status(500).json({ message: "방 생성 중 오류가 발생했습니다." });
+        console.error('방 생성 중 오류:', error);
+        res.status(500).json({ message: '방 생성 중 문제가 발생했습니다.' });
     }
 });
 
 
-/**
- * 방 참가 API
- */
+
 router.put("/:roomId/join", verifyToken, async (req, res) => {
     const { roomId } = req.params;
     const { userid } = req.user;
 
-    try {
-        const room = await Room.findById(roomId);
-        if (!room) {
-            return res.status(404).json({ message: "방을 찾을 수 없습니다." });
-        }
-
-        // 방이 가득 찼는지 확인
-        if (room.isFull) {
-            return res.status(400).json({ message: "방이 가득 찼습니다." });
-        }
-
-        // 참가자 추가
-        room.participants.push({ userId: userid });
-        await room.save();
-
-        res.status(200).json({ message: "방에 참가했습니다." });
-    } catch (error) {
-        console.error("방 참가 중 오류:", error);
-        res.status(500).json({ message: "방 참가 중 서버 오류가 발생했습니다." });
+    const room = rooms.find((r) => r.id === roomId);
+    if (!room) {
+        return res.status(404).json({ message: "방을 찾을 수 없습니다." });
     }
-});
 
+    if (room.participants.length >= room.maxParticipants) {
+        return res.status(400).json({ message: "방이 가득 찼습니다." });
+    }
+
+    // 참가자 추가
+    room.participants.push({ userId: userid });
+
+    res.status(200).json({ message: "방에 참가했습니다.", room });
+});
 
 /**
  * 방 나가기 API
