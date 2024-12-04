@@ -98,22 +98,26 @@ document.addEventListener("DOMContentLoaded", function () {
             alert("모든 항목을 선택해주세요.");
             return;
         }
-
-        const room = {
-            name: roomName,
-            gameType: selectedGameType,
-            difficulty: selectedDifficulty,
-            host: userName
-        };
-
-        rooms.push(room);
-        updateRoomsDisplay();
-        roomCreationModal.style.display = "none";
-        roomNameInput.value = "";
-        selectedGameType = null;
-        selectedDifficulty = null;
-        document.querySelectorAll(".game-type-btn, .difficulty-btn").forEach(btn => btn.classList.remove("selected"));
+    
+        fetch('/api/rooms/create', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ title: roomName, gameType: selectedGameType, difficulty: selectedDifficulty }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.roomId) {
+                    window.location.href = `/gameRoom.html?roomId=${data.roomId}`;
+                } else {
+                    alert("방 생성 중 문제가 발생했습니다.");
+                }
+            })
+            .catch(error => console.error("방 생성 오류:", error));
     });
+    
 
     function updateRoomsDisplay() {
         roomsContainer.innerHTML = "";

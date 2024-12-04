@@ -3,7 +3,7 @@ const createError = require('http-errors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const cors = require('cors'); // CORS 추가
+const cors = require('cors');
 require('dotenv').config();
 
 const connectDB = require('./mongoose/index'); // MongoDB 연결 함수
@@ -29,8 +29,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 라우터 설정
 app.use('/', indexRouter);
 app.use('/api/users', userRouter);
-app.use('/api/quiz', quizRouter); // '/api/quiz'로 Quiz 라우터 추가
-app.use('/api/users', userRouter); // '/api/users'로 수정
+app.use('/api/quiz', quizRouter);
 app.use('/api/rooms', roomsRouter);
 
 // 보호된 경로
@@ -55,10 +54,10 @@ app.use((req, res, next) => {
 // 에러 핸들러
 app.use((err, req, res, next) => {
     res.status(err.status || 500);
-    res.send(`
-        <h1>Error ${err.status || 500}</h1>
-        <p>${err.message}</p>
-    `);
+    res.send(
+        `<h1>Error ${err.status || 500}</h1>
+         <p>${err.message}</p>`
+    );
 });
 
-module.exports = app;
+module.exports = app; // Express 애플리케이션 인스턴스만 내보냄
