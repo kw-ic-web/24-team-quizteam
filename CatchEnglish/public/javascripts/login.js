@@ -19,6 +19,7 @@ document.querySelector(".login-form").addEventListener("submit", async (event) =
         const data = await response.json();
         localStorage.setItem("token", data.token); // 토큰 저장
         localStorage.setItem("userid", data.userid); // 사용자 ID 저장
+        localStorage.setItem("character", data.character); // 사용자 캐릭터 저장
         window.location.href = "/start.html"; // 대기실 페이지로 이동
     } catch (error) {
         console.error('로그인 오류:', error);

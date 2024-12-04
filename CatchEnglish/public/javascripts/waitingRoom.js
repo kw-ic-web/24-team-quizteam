@@ -177,9 +177,78 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+     // 캐릭터 선택 기능 추가
+     const characterModal = document.createElement("div");
+     characterModal.id = "characterModal";
+     characterModal.className = "modal";
+     characterModal.innerHTML = `
+         <div class="modal-content">
+             <h2>캐릭터 선택</h2>
+             <div class="character-options">
+                 <img src="/images/character_A.png" alt="Character A" class="character-option" data-character="A">
+                 <img src="/images/character_B.png" alt="Character B" class="character-option" data-character="B">
+                 <img src="/images/character_C.png" alt="Character C" class="character-option" data-character="C">
+                 <img src="/images/character_D.png" alt="Character D" class="character-option" data-character="D">
+             </div>
+             <button id="closeCharacterModal" class="cancel-btn">닫기</button>
+         </div>
+     `;
+     document.body.appendChild(characterModal);
+ 
+     editorIcon.addEventListener("click", () => {
+         characterModal.style.display = "flex";
+     });
+ 
+     characterModal.addEventListener("click", (event) => {
+         if (event.target.classList.contains("character-option")) {
+             const selectedCharacter = event.target.getAttribute("data-character");
+     
+             // 서버에 캐릭터 업데이트 요청
+             fetch('/api/users/update-character', {
+                 method: 'POST',
+                 headers: {
+                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                     'Content-Type': 'application/json'
+                 },
+                 body: JSON.stringify({ character: selectedCharacter })
+             })
+             .then(response => {
+                 if (!response.ok) {
+                     throw new Error("캐릭터 업데이트 실패");
+                 }
+                 return response.json();
+             })
+             .then(data => {
+                 console.log("캐릭터가 업데이트되었습니다:", data);
+     
+                 // 업데이트 후 사용자 정보 재요청
+                 return fetch('/api/users/userinfo', {
+                     method: 'GET',
+                     headers: {
+                         'Authorization': `Bearer ${localStorage.getItem('token')}`
+                     }
+                 });
+             })
+             .then(response => response.json())
+             .then(data => {
+                 profileIcon.src = `/images/character_${data.character}.png?timestamp=${Date.now()}`; // 캐릭터 업데이트
+             })
+             .catch(error => {
+                 console.error("캐릭터 업데이트 중 오류:", error);
+             });
+         }
+     });
+     
+ 
+     characterModal.querySelector("#closeCharacterModal").addEventListener("click", () => {
+         characterModal.style.display = "none";
+     }); 
+
     // 로그아웃
     logoutBtn.addEventListener("click", () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('userid');
+        localStorage.removeItem('character');
         window.location.href = "/login.html";
     });
 
