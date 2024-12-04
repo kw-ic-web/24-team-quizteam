@@ -45,33 +45,30 @@ router.post("/signup", async (req, res) => {
     }
 });
 
-// 로그인 처리
+//로그인
 router.post("/login", async (req, res) => {
     const { userid, password } = req.body;
 
     try {
         const user = await User.findOne({ userid });
         if (!user) {
-            return res.status(401).send(`<script>alert("아이디 또는 비밀번호가 일치하지 않습니다."); window.location.href = "/login.html";</script>`);
+            return res.status(401).json({ message: "아이디 또는 비밀번호가 일치하지 않습니다." });
         }
 
         // 비밀번호 비교
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            return res.status(401).send(`<script>alert("아이디 또는 비밀번호가 일치하지 않습니다."); window.location.href = "/login.html";</script>`);
+            return res.status(401).json({ message: "아이디 또는 비밀번호가 일치하지 않습니다." });
         }
 
         // JWT 생성 및 발급
         const token = jwt.sign({ userid: user.userid }, SECRET_KEY, { expiresIn: '1h' });
-        res.send(`
-            <script>
-                localStorage.setItem('token', '${token}');
-                window.location.href = "/start.html";
-            </script>
-        `);
+
+        // JSON으로 응답
+        res.json({ userid: user.userid, token });
     } catch (error) {
         console.error(error);
-        res.status(500).send(`<script>alert("서버 오류 발생"); window.location.href = "/login.html";</script>`);
+        res.status(500).json({ message: "서버 오류 발생" });
     }
 });
 

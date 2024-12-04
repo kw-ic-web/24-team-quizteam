@@ -10,7 +10,7 @@ const connectDB = require('./mongoose/index'); // MongoDB 연결 함수
 const indexRouter = require('./routes/index'); // 메인 라우터
 const userRouter = require('./routes/api/users'); // 사용자 관련 API 라우터
 const quizRouter = require('./routes/api/quiz'); // Quiz 관련 라우터
-const roomsRouter=require('./routes/api/rooms');
+const roomsRouter = require('./routes/api/rooms');
 const { verifyToken } = require('./routes/middlewares'); // JWT 검증 미들웨어
 
 const app = express();

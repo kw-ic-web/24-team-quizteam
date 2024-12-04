@@ -1,21 +1,29 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Waiting Room</title>
     <link rel="stylesheet" href="/stylesheets/waitingRoom.css">
+    <script src="/socket.io/socket.io.js"></script>
+    
 </head>
+
 <body>
     <div class="profile-section">
         <div class="profile-wrapper">
             <img src="/images/character_A.png" alt="Profile Icon" class="profile-icon" id="profileIcon">
             <img src="/images/editor.png" alt="Editor Icon" class="editor-icon" id="editorIcon">
         </div>
-        <p class="username">로딩 중...</p> <!-- Username will be updated here -->
-        <div class="chat-box">채팅창</div>
+        <p class="username">로딩 중...</p>
+        <div class="chat">
+            <div class="chat-box"></div>
+            <input type="text" class="input-box" placeholder="메세지를 입력해주세요...">
+            <button id="sendBtn" class="send-btn">전송</button>
+        </div>
     </div>
-    
+
     <div class="room-section">
         <div class="title-button-group">
             <h1>Waiting Room</h1>
@@ -24,11 +32,11 @@
                 <button class="quick-enter-btn">바로 입장</button>
             </div>
         </div>
-    
+
         <div id="rooms-container" class="rooms-container">
             <!-- 6개의 빈 방 슬롯 -->
         </div>
-    
+
         <div class="pagination">
             <button class="prev-btn">◀</button>
             <button class="next-btn">▶</button>
@@ -68,8 +76,9 @@
     <div class="logout-section">
         <button id="logoutBtn">로그아웃</button>
     </div>
-    
+
 
     <script src="/javascripts/waitingRoom.js"></script>
 </body>
+
 </html>
