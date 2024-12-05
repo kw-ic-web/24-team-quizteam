@@ -31,6 +31,18 @@ const socketHandler = (server) => {
             io.emit("chatMessage", { user: userid, message: data.message });
         });
 
+        // 정답 확인
+        socket.on("check answer", (data) => {
+            const { answer, correctAnswer, userId } = data;
+
+            if (answer.trim().toLowerCase() === correctAnswer.toLowerCase()) {
+                io.emit("answer result", { isCorrect: true, userId });
+            } else {
+                io.emit("answer result", { isCorrect: false, userId });
+            }
+        });
+
+        
         // 사용자 연결 해제 처리
         socket.on("disconnect", () => {
             const userid = userMap.get(socket.id);

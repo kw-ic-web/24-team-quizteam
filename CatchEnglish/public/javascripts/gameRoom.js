@@ -1,4 +1,4 @@
-const socket = io('http://localhost:3000'); // 서버 주소 명시
+const socket = io(); // 서버 주소 명시
 
 let currentQuestionIndex = 0; // 현재 문제 인덱스
 let questions = []; // 문제 리스트
@@ -64,82 +64,53 @@ function loadQuestion() {
     });
 }
 
-/**
- * 채팅 메시지를 화면에 추가하는 함수
- */
-function addChatMessage(msg) {
+// 정답 제출 처리
+document.querySelector(".input-box").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        const message = e.target.value.trim();
+        if (message) {
+            const question = questions[currentQuestionIndex];
+            // 채팅 메시지 서버로 전송
+            socket.emit("chatMessage", { userId: "Player1", message });
+
+            // 정답 제출
+            socket.emit("check answer", {
+                answer: message,
+                correctAnswer: question.answer,
+                questionIndex: currentQuestionIndex,
+                userId: "Player1",
+            });
+
+            e.target.value = ""; // 입력 필드 초기화
+        }
+    }
+});
+
+// 서버로부터 정답 결과 수신
+socket.on("answer result", ({ isCorrect, userId }) => {
+    if (isCorrect) {
+        alert(`${userId}님이 정답을 맞혔습니다!`);
+        currentQuestionIndex++;
+        loadQuestion();
+    }
+});
+
+// 서버로부터 채팅 메시지 수신
+socket.on("chatMessage", (data) => {
     const chatBox = document.querySelector("#chat-messages");
+    if (!chatBox) {
+        console.error("chatBox 요소를 찾을 수 없습니다. HTML에 #chat-messages 요소를 추가하세요.");
+        return;
+    }
+
     const messageDiv = document.createElement("div");
     messageDiv.classList.add("chat-message");
-    messageDiv.textContent = `${msg.userId}: ${msg.message}`;
+    messageDiv.textContent = `${data.userId}: ${data.message}`;
     chatBox.appendChild(messageDiv);
+    chatBox.scrollTop = chatBox.scrollHeight; // 채팅창 스크롤을 최신 메시지로 이동
+    console.log("gameRoom 채팅 작동");
+});
 
-    // 새 메시지가 추가되면 채팅 창 스크롤 하단으로 이동
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-/**
- * 정답 제출 함수
- */
-function submitAnswer(message) {
-    const userId = "Player1"; // 사용자 ID (임의로 설정)
-    socket.emit("chat message", { userId, message }); // 채팅 메시지 전송
-    socket.emit("check answer", { answer: message, userId }); // 정답 제출
-}
-
-/**
- * 소켓 이벤트 설정
- */
-function setupSocketListeners() {
-    // 정답 확인 결과 수신
-    socket.on("answer result", ({ isCorrect, userId }) => {
-        if (isCorrect) {
-            alert(`${userId}님이 정답을 맞혔습니다!`);
-            currentQuestionIndex++;
-            if (currentQuestionIndex < questions.length) {
-                loadQuestion();
-            } else {
-                alert("모든 문제를 풀었습니다. 게임 종료!");
-                socket.emit("end game", { userId });
-            }
-        } else {
-            alert("오답입니다. 다시 시도하세요!");
-        }
-    });
-
-    // 서버에서 받은 채팅 메시지 처리
-    socket.on("chat message", (msg) => {
-        addChatMessage(msg);
-    });
-}
-
-/**
- * 사용자 이벤트 설정
- */
-function setupUserEventListeners() {
-    const inputBox = document.querySelector(".input-box");
-    const sendButton = document.querySelector("#sendBtn");
-
-    // Enter 키로 메시지 전송 및 정답 제출
-    inputBox.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-            const message = inputBox.value.trim();
-            if (message) {
-                submitAnswer(message);
-                inputBox.value = ""; // 입력 필드 초기화
-            }
-        }
-    });
-
-    // 버튼 클릭으로 메시지 전송 및 정답 제출
-    sendButton.addEventListener("click", () => {
-        const message = inputBox.value.trim();
-        if (message) {
-            submitAnswer(message);
-            inputBox.value = ""; // 입력 필드 초기화
-        }
-    });
-}
 
 /**
  * 페이지 로드 시 실행
