@@ -19,17 +19,26 @@ const getQuestions = async (collectionName) => {
 // Quiz 질문 가져오기 라우트
 router.get('/questions/:collection', async (req, res) => {
     const { collection } = req.params;
+    console.log("Requested collection:", collection); // 디버깅 로그
+
+    if (!collection || !collection.startsWith('game_')) {
+        console.error("Invalid collection name:", collection);
+        return res.status(400).json({ message: "Invalid collection name" });
+    }
+
     try {
-        // 컬렉션 이름이 "game_"으로 시작하는지 확인
-        if (!collection.startsWith('game_')) {
-            return res.status(400).json({ message: "잘못된 컬렉션 이름입니다." });
-        }
         const questions = await getQuestions(collection);
+        if (!questions.length) {
+            console.warn("No questions found for collection:", collection);
+            return res.status(404).json({ message: "No questions found" });
+        }
         res.json(questions);
     } catch (error) {
-        console.error("문제를 가져오는 중 오류 발생:", error);
-        res.status(500).json({ error: "문제를 가져오는 데 실패했습니다." });
+        console.error("Error fetching questions:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 });
+
+
 
 module.exports = router;

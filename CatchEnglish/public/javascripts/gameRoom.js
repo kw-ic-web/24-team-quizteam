@@ -6,15 +6,33 @@ let questions = []; // 문제 리스트
 /**
  * 서버에서 문제 데이터를 가져오는 함수
  */
+
+function getQueryParams() {
+    const params = new URLSearchParams(window.location.search);
+    const gameType = params.get("gameType");
+    const difficulty = params.get("difficulty");
+    console.log("Received gameType:", gameType);
+    console.log("Received difficulty:", difficulty);
+    return { gameType, difficulty };
+}
+
+
+
 async function fetchQuestions() {
+    const { gameType, difficulty } = getQueryParams();
+    const collectionName = `game_${gameType}_${difficulty}`;
+    console.log("Fetching questions for collectionName:", collectionName);
     try {
-        const response = await fetch("/api/quiz/questions/game_blankQuiz_easy");
+        const response = await fetch(`/api/quiz/questions/${encodeURIComponent(collectionName)}`);
+        console.log("Fetch response status:", response.status);
+
         if (!response.ok) throw new Error("문제 데이터를 가져오는데 실패했습니다.");
+
         const data = await response.json();
+        console.log("Fetched questions:", data);
         return data;
     } catch (error) {
         console.error("문제 데이터를 가져오는 중 오류 발생:", error);
-        alert("문제를 가져오는 데 실패했습니다. 다시 시도하세요.");
         return [];
     }
 }
@@ -128,6 +146,7 @@ function setupUserEventListeners() {
  */
 document.addEventListener("DOMContentLoaded", async () => {
     questions = await fetchQuestions(); // 문제 데이터 가져오기
+    console.log("Questions loaded:", questions);
     loadQuestion(); // 첫 번째 문제 표시
     setupSocketListeners(); // 소켓 이벤트 설정
     setupUserEventListeners(); // 사용자 이벤트 설정
