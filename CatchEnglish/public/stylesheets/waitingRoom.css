@@ -182,6 +182,43 @@ body {
   margin-bottom: 5px;
 }
 
+.room-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  margin-left: auto;
+  text-align: right;
+}
+
+.participant-count {
+  font-size: 0.9em;
+  color: white;
+  background-color: #ffa07a;
+  padding: 5px 10px;
+  border-radius: 20px;
+  display: inline-block;
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+
+.enter-btn {
+  margin-top: 5px;
+  background-color: #1dd1a1;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.enter-btn:hover {
+  background-color: #10ac84;
+}
+
 .pagination {
   display: flex;
   justify-content: center;

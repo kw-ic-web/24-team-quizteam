@@ -69,24 +69,24 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // 게임 유형 선택
-document.querySelectorAll(".game-type-btn").forEach(button => {
-    button.addEventListener("click", () => {
-        document.querySelectorAll(".game-type-btn").forEach(btn => btn.classList.remove("selected"));
-        button.classList.add("selected");
-        selectedGameType = button.getAttribute("data-type");
-        console.log("Selected Game Type:", selectedGameType);
+    document.querySelectorAll(".game-type-btn").forEach(button => {
+        button.addEventListener("click", () => {
+            document.querySelectorAll(".game-type-btn").forEach(btn => btn.classList.remove("selected"));
+            button.classList.add("selected");
+            selectedGameType = button.getAttribute("data-type");
+            console.log("Selected Game Type:", selectedGameType);
+        });
     });
-});
 
-// 난이도 선택
-document.querySelectorAll(".difficulty-btn").forEach(button => {
-    button.addEventListener("click", () => {
-        document.querySelectorAll(".difficulty-btn").forEach(btn => btn.classList.remove("selected"));
-        button.classList.add("selected");
-        selectedDifficulty = button.getAttribute("data-difficulty");
-        console.log("Selected Difficulty:", selectedDifficulty);
+    // 난이도 선택
+    document.querySelectorAll(".difficulty-btn").forEach(button => {
+        button.addEventListener("click", () => {
+            document.querySelectorAll(".difficulty-btn").forEach(btn => btn.classList.remove("selected"));
+            button.classList.add("selected");
+            selectedDifficulty = button.getAttribute("data-difficulty");
+            console.log("Selected Difficulty:", selectedDifficulty);
+        });
     });
-});
 
     createRoomBtn.addEventListener("click", () => {
         roomCreationModal.style.display = "flex";
@@ -136,7 +136,7 @@ document.querySelectorAll(".difficulty-btn").forEach(button => {
             .catch(error => {
                 console.error("방 생성 요청 중 오류 발생:", error);
             });
-        
+
 
         // 서버로 방 생성 요청 보내기
         socket.emit("createRoom", {
@@ -167,30 +167,6 @@ document.querySelectorAll(".difficulty-btn").forEach(button => {
         updateRoomsDisplay(); // 화면에 방 목록 업데이트
     });
 
-    // 방 클릭 시 참가
-    roomsContainer.addEventListener("click", (event) => {
-        const roomSlot = event.target.closest(".room-slot");
-        if (!roomSlot || !roomSlot.dataset.roomId) return;
-
-        const roomId = roomSlot.dataset.roomId;
-        fetch(`/api/rooms/${roomId}/join`, {
-            method: "PUT",
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-                "Content-Type": "application/json",
-            },
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.message === "방에 참가했습니다.") {
-                    window.location.href = `/gameRoom.html?roomId=${roomId}&gameType=${encodeURIComponent(selectedGameType)}&difficulty=${encodeURIComponent(selectedDifficulty)}`;
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch((error) => console.error("방 참가 오류:", error));
-    });
-
     function updateRoomsDisplay() {
         roomsContainer.innerHTML = ""; // 기존 방 목록 초기화
         const start = currentPage * roomsPerPage;
@@ -210,7 +186,12 @@ document.querySelectorAll(".difficulty-btn").forEach(button => {
                         <span>방장</span> <span class="user-label">${room.participants[0]?.userId || "알 수 없음"}</span>
                     </div>
                 </div>
+                <div class="room-actions">
+                    <div class="participant-count">${room.participants.length}/${room.maxParticipants || 4}</div>
+                    <button class="enter-btn">입장</button>  
+                </div>
             `;
+
             roomsContainer.appendChild(roomSlot);
         });
 

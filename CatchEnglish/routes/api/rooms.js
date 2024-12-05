@@ -8,6 +8,13 @@ router.post('/create', verifyToken, async (req, res) => {
     const { userid } = req.user;
 
     try {
+        // 중복 제목 확인
+        const existingRoom = await Room.findOne({ title });
+        if (existingRoom) {
+            return res.status(400).json({ message: "이미 동일한 제목의 방이 존재합니다." });
+        }
+
+        // 방 생성
         const newRoom = await Room.create({
             title,
             gameType,
@@ -24,66 +31,6 @@ router.post('/create', verifyToken, async (req, res) => {
     }
 });
 
-
-
-router.put("/:roomId/join", verifyToken, async (req, res) => {
-    const { roomId } = req.params;
-    const { userid } = req.user;
-
-    const room = rooms.find((r) => r.id === roomId);
-    if (!room) {
-        return res.status(404).json({ message: "방을 찾을 수 없습니다." });
-    }
-
-    if (room.participants.length >= room.maxParticipants) {
-        return res.status(400).json({ message: "방이 가득 찼습니다." });
-    }
-
-    // 참가자 추가
-    room.participants.push({ userId: userid });
-
-    res.status(200).json({ message: "방에 참가했습니다.", room });
-});
-
-/**
- * 방 나가기 API
- */
-router.put("/:roomId/leave", verifyToken, async (req, res) => {
-    const { roomId } = req.params;
-    const userId = req.decoded.id;
-
-    try {
-        const room = await Room.findById(roomId);
-        if (!room) {
-            return res.status(404).json({ message: "Room not found." });
-        }
-
-        // 참가자 목록에서 사용자 제거
-        room.participants = room.participants.filter(participant => participant.userId !== userId);
-
-        // 참가자가 없으면 방 삭제
-        if (room.participants.length === 0) {
-            await room.deleteOne();
-            console.log(`Room deleted as it became empty: ${roomId}`);
-            return res.status(200).json({ message: "Room deleted as it became empty." });
-        }
-
-        await room.save();
-        console.log("User left the room:", { roomId, userId });
-
-        res.status(200).json({
-            message: "Successfully left the room.",
-            participants: room.participants,
-        });
-    } catch (error) {
-        console.error("Error leaving room:", error);
-        res.status(500).json({ message: "Server error occurred while leaving the room." });
-    }
-});
-
-/**
- * 모든 방 목록 조회 API
- */
 router.get("/", verifyToken, async (req, res) => {
     try {
         const rooms = await Room.find({}, { title: 1, gameType: 1, difficulty: 1, participants: 1 });
