@@ -93,4 +93,37 @@ router.get("/", verifyToken, async (req, res) => {
     }
 });
 
+// 방 나가기
+router.post("/leave", verifyToken, async (req, res) => {
+    const { roomId } = req.body;
+    const { userid } = req.user;
+
+    try {
+        console.log(`방 나가기 요청: roomId=${roomId}, userId=${userid}`);
+
+        const room = await Room.findOne({ roomId });
+        if (!room) {
+            return res.status(404).json({ message: "해당 방을 찾을 수 없습니다." });
+        }
+
+        // 방 참가자 목록에서 사용자 제거
+        room.participants = room.participants.filter(participant => participant.userId !== userid);
+
+        if (room.participants.length === 0) {
+            // 참가자가 없으면 방 삭제
+            await Room.deleteOne({ roomId });
+            console.log(`참가자가 없어 방이 삭제되었습니다: roomId=${roomId}`);
+        } else {
+            // 참가자가 남아 있으면 방 정보 업데이트
+            await room.save();
+            console.log(`사용자가 방에서 나갔습니다: roomId=${roomId}, userId=${userid}`);
+        }
+
+        res.status(200).json({ message: "방에서 나갔습니다." });
+    } catch (error) {
+        console.error("방 나가기 처리 중 오류:", error);
+        res.status(500).json({ message: "방 나가기 처리 중 문제가 발생했습니다." });
+    }
+});
+
 module.exports = router;

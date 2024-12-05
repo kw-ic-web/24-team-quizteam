@@ -105,6 +105,30 @@ const socketHandler = (server) => {
             io.emit("roomCreated", newRoom);
         });
 
+        socket.on("leaveRoom", ({ roomId, userId }) => {
+            const room = rooms.find(r => r.id === roomId);
+            if (room) {
+                // 참가자 목록에서 사용자 제거
+                room.participants = room.participants.filter(p => p.userId !== userId);
+                console.log(`사용자가 방에서 나갔습니다: roomId=${roomId}, userId=${userId}`);
+        
+                // 참가자가 없으면 방 삭제
+                if (room.participants.length === 0) {
+                    const roomIndex = rooms.findIndex(r => r.id === roomId);
+                    if (roomIndex > -1) {
+                        rooms.splice(roomIndex, 1);
+                        console.log(`참가자가 없어 방이 삭제되었습니다: roomId=${roomId}`);
+                    }
+                }
+        
+                // 모든 클라이언트에게 업데이트된 방 목록 전송
+                io.emit("updateRoomList", rooms);
+            } else {
+                console.warn(`방을 찾을 수 없습니다: roomId=${roomId}`);
+            }
+        });
+        
+
         // 방 목록 요청 처리
         socket.on("requestRoomList", () => {
             socket.emit("updateRoomList", rooms); // 현재 방 목록 전송

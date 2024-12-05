@@ -7,12 +7,12 @@ let currentUser = null; // 현재 사용자 정보
 /**
  * 서버에서 문제 데이터를 가져오는 함수
  */
-
 function getQueryParams() {
     const params = new URLSearchParams(window.location.search);
     const gameType = params.get("gameType");
     const difficulty = params.get("difficulty");
-    return { gameType, difficulty };
+    const roomId = params.get("roomId"); // roomId 가져오기
+    return { gameType, difficulty, roomId };
 }
 
 async function fetchQuestions() {
@@ -102,6 +102,24 @@ socket.on("chatMessage", (data) => {
     messageDiv.textContent = `${data.user}: ${data.message}`;
     chatBox.appendChild(messageDiv);
     chatBox.scrollTop = chatBox.scrollHeight; // 채팅창 스크롤을 최신 메시지로 이동
+});
+
+/**
+ * 방 나가기 버튼 처리
+ */
+document.getElementById("leave-room-btn").addEventListener("click", () => {
+    const { roomId } = getQueryParams();
+    const userId = localStorage.getItem("userid");
+
+    if (roomId && userId) {
+        // 서버에 방 나가기 이벤트 전송
+        socket.emit("leaveRoom", { roomId, userId });
+
+        // 대기실로 리다이렉트
+        window.location.href = "/waitingroom.html";
+    } else {
+        alert("방 정보를 확인할 수 없습니다.");
+    }
 });
 
 /**
