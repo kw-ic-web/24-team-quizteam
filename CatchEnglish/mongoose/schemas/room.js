@@ -3,6 +3,7 @@ const { Schema } = mongoose;
 
 const roomSchema = new Schema(
     {
+        roomId: { type: String, required: true, unique: true }, 
         title: { type: String, required: true, unique: true },
         gameType: { type: String, required: true }, // 게임 유형
         difficulty: { type: String, required: true }, // 난이도

@@ -96,49 +96,61 @@ document.addEventListener("DOMContentLoaded", function () {
         roomCreationModal.style.display = "none";
     });
 
-    createRoomModalBtn.addEventListener("click", () => {
+    createRoomModalBtn.addEventListener("click", async () => {
         const roomName = roomNameInput.value.trim();
 
         console.log("Selected gameType:", selectedGameType);
         console.log("Selected difficulty:", selectedDifficulty);
 
+        // 입력값 검증
         if (!roomName || !selectedGameType || !selectedDifficulty) {
             alert("모든 항목을 입력해주세요.");
             return;
         }
 
-        console.log("Game Type:", selectedGameType); // 디버깅 로그
-        console.log("Difficulty:", selectedDifficulty); // 디버깅 로그
+        console.log("방 생성 요청 데이터:", {
+            title: roomName,
+            gameType: selectedGameType,
+            difficulty: selectedDifficulty,
+        });
 
-        // 서버로 방 생성 요청
-        fetch('/api/rooms/create', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                title: roomName,
-                gameType: selectedGameType,
-                difficulty: selectedDifficulty,
-            }),
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data && data.roomId) {
-                    const url = `/gameRoom.html?roomId=${data.roomId}&gameType=${encodeURIComponent(selectedGameType)}&difficulty=${encodeURIComponent(selectedDifficulty)}`;
-                    console.log("Redirecting to URL:", url); // 로그 추가
-                    window.location.href = url;
-                } else {
-                    alert("방 생성 중 문제가 발생했습니다.");
-                }
-            })
-            .catch(error => {
-                console.error("방 생성 요청 중 오류 발생:", error);
+        try {
+            // 서버로 방 생성 요청
+            const response = await fetch('/api/rooms/create', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: roomName,
+                    gameType: selectedGameType,
+                    difficulty: selectedDifficulty,
+                }),
             });
 
+            if (response.ok) {
+                const data = await response.json();
 
-        // 서버로 방 생성 요청 보내기
+                // 응답 데이터 확인 및 처리
+                if (data && data.roomId) {
+                    const url = `/gameRoom.html?roomId=${data.roomId}&gameType=${encodeURIComponent(selectedGameType)}&difficulty=${encodeURIComponent(selectedDifficulty)}`;
+                    console.log("Redirecting to URL:", url);
+                    window.location.href = url;
+                } else {
+                    console.error("방 생성 응답이 올바르지 않습니다:", data);
+                    alert("방 생성 중 문제가 발생했습니다.");
+                }
+            } else {
+                console.error("방 생성 요청 실패:", response.status, response.statusText);
+                alert(`방 생성 실패: ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error("방 생성 요청 중 오류 발생:", error);
+            alert("방 생성 요청 중 문제가 발생했습니다. 네트워크 상태를 확인해주세요.");
+        }
+
+        // 추가적으로 Socket.io를 사용할 경우:
         socket.emit("createRoom", {
             title: roomName,
             gameType: selectedGameType,
@@ -152,14 +164,28 @@ document.addEventListener("DOMContentLoaded", function () {
     // 방 생성 후 자동으로 방으로 이동
     socket.on("roomJoined", (room) => {
         console.log("생성된 방으로 이동합니다:", room);
-        window.location.href = `/gameRoom.html?roomId=${room.id}&gameType=${encodeURIComponent(selectedGameType)}&difficulty=${encodeURIComponent(selectedDifficulty)}`;
+
+        // 서버에서 받은 room 객체에서 gameType과 difficulty 가져오기
+        const { id, gameType, difficulty } = room;
+
+        if (!id || !gameType || !difficulty) {
+            console.error("방 정보가 유효하지 않습니다:", room);
+            alert("방 정보가 유효하지 않습니다. 다시 시도해주세요.");
+            return;
+        }
+
+        const url = `/gameRoom.html?roomId=${id}&gameType=${encodeURIComponent(gameType)}&difficulty=${encodeURIComponent(difficulty)}`;
+        console.log("Redirecting to URL:", url);
+        window.location.href = url;
     });
 
-    // 서버에서 새 방 생성 알림 받기
+    // 방 생성 후 서버에서 새 방 생성 알림 받기
     socket.on("roomCreated", (room) => {
         rooms.push(room); // 새 방 추가
         updateRoomsDisplay(); // 방 목록 업데이트
+        console.log("새로 생성된 방:", room);
     });
+
 
     socket.on("updateRoomList", (updatedRooms) => {
         console.log("서버에서 받은 방 목록:", updatedRooms); // 서버에서 받은 데이터 확인
@@ -177,7 +203,9 @@ document.addEventListener("DOMContentLoaded", function () {
         visibleRooms.forEach(room => {
             const roomSlot = document.createElement("div");
             roomSlot.className = "room-slot"; // 방 슬롯 클래스
-            roomSlot.dataset.roomId = room.id; // 데이터 속성으로 방 ID 설정
+            roomSlot.dataset.roomId = room.id;
+            roomSlot.dataset.gameType = room.gameType; // 게임 유형 저장
+            roomSlot.dataset.difficulty = room.difficulty; // 난이도 저장
             roomSlot.innerHTML = `
                 <div class="room-info">
                     <div class="game-type-label ${getDifficultyClass(room.difficulty)}">${room.gameType}</div>
@@ -192,7 +220,53 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
             `;
 
-            roomsContainer.appendChild(roomSlot);
+            const enterButton = roomSlot.querySelector(".enter-btn");
+            enterButton.addEventListener("click", async () => {
+                const roomId = roomSlot.dataset.roomId; // 데이터 속성에서 방 ID 가져오기
+                const gameType = roomSlot.dataset.gameType; // 데이터 속성에서 게임 유형 가져오기
+                const difficulty = roomSlot.dataset.difficulty; // 데이터 속성에서 난이도 가져오기
+
+                if (!roomId || !gameType || !difficulty) {
+                    console.error("유효하지 않은 방 데이터:", { roomId, gameType, difficulty });
+                    alert("방 정보를 가져오는 중 오류가 발생했습니다.");
+                    return;
+                }
+
+                console.log(`방 입장 요청: roomId=${roomId}, gameType=${gameType}, difficulty=${difficulty}`);
+
+                // 방 입장 요청
+                socket.emit("joinRoom", { roomId, userId: userName });
+
+                try {
+                    const response = await fetch(`/api/rooms/${roomId}`, {
+                        method: "GET",
+                        headers: {
+                            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+                        },
+                    });
+
+                    if (response.ok) {
+                        const roomDetails = await response.json();
+                        console.log("서버에서 받은 방 정보:", roomDetails);
+
+                        // 서버에서 가져온 정보를 기준으로 유효성 검증
+                        const validGameType = roomDetails.gameType || gameType;
+                        const validDifficulty = roomDetails.difficulty || difficulty;
+
+                        // 게임 방으로 리다이렉트
+                        window.location.href = `/gameRoom.html?roomId=${roomId}&gameType=${encodeURIComponent(validGameType)}&difficulty=${encodeURIComponent(validDifficulty)}`;
+                    } else {
+                        console.error("방 정보 요청 실패:", response.status);
+                        alert("방에 입장할 수 없습니다. 다시 시도해주세요.");
+                    }
+                } catch (error) {
+                    console.error("방 입장 중 오류 발생:", error);
+                    alert("방에 입장하는 중 문제가 발생했습니다.");
+                }
+            });
+
+
+            roomsContainer.appendChild(roomSlot); // 방 슬롯을 컨테이너에 추가
         });
 
         // 남은 슬롯을 빈 슬롯으로 채우기
@@ -204,6 +278,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         updatePaginationButtons(); // 페이지네이션 버튼 상태 업데이트
     }
+
 
     function updatePaginationButtons() {
         prevBtn.disabled = currentPage === 0;

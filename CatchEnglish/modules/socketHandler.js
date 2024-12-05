@@ -1,11 +1,11 @@
 const { Server } = require('socket.io');
 const userMap = new Map(); // socket.id와 userid 매핑
-const rooms = [];
+const rooms = []; // 생성된 방 목록 저장
 
 const socketHandler = (server) => {
     const io = new Server(server, {
         cors: {
-            origin: "http://localhost:3000",
+            origin: "http://localhost:3000", // CORS 설정
             methods: ["GET", "POST"],
         },
     });
@@ -13,34 +13,35 @@ const socketHandler = (server) => {
     io.on("connection", (socket) => {
         console.log("새로운 사용자가 연결되었습니다:", socket.id);
 
-        // 클라이언트에서 userid를 받아와 매핑
+        // 사용자 등록 처리
         socket.on("register", (userid) => {
             if (userid) {
-                userMap.set(socket.id, userid);
+                userMap.set(socket.id, userid); // socket.id와 userid 매핑
                 console.log(`사용자 등록 완료: socket.id=${socket.id}, userid=${userid}`);
-                io.emit("userStatus", `${userid} 님이 입장했습니다.`);
+                io.emit("userStatus", `${userid} 님이 입장했습니다.`); // 다른 사용자에게 상태 알림
             } else {
                 console.warn(`userid가 제공되지 않았습니다: socket.id=${socket.id}`);
             }
         });
 
-        // 클라이언트 요청에 따라 사용자 정보 반환
+        // 사용자 정보 요청 처리
         socket.on("request user info", () => {
-            const userId = userMap.get(socket.id) || "Guest";
-            socket.emit("user info", { userId });
+            const userId = userMap.get(socket.id) || "Guest"; // 기본값으로 Guest 사용
+            socket.emit("user info", { userId }); // 사용자 정보 전송
         });
 
         // 채팅 메시지 처리
         socket.on("chatMessage", (data) => {
-            const userid = userMap.get(socket.id) || "알 수 없는 사용자";
+            const userid = userMap.get(socket.id) || "알 수 없는 사용자"; // 사용자 ID 가져오기
             console.log(`메시지 수신: ${userid}: ${data.message}`);
-            io.emit("chatMessage", { user: userid, message: data.message });
+            io.emit("chatMessage", { user: userid, message: data.message }); // 메시지를 모든 사용자에게 전송
         });
 
-        // 정답 확인
+        // 정답 확인 처리
         socket.on("check answer", (data) => {
             const { answer, correctAnswer, userId } = data;
 
+            // 정답 여부 확인
             if (answer.trim().toLowerCase() === correctAnswer.toLowerCase()) {
                 io.emit("answer result", { isCorrect: true, userId });
             } else {
@@ -50,37 +51,63 @@ const socketHandler = (server) => {
 
         // 사용자 연결 해제 처리
         socket.on("disconnect", () => {
-            const userid = userMap.get(socket.id);
+            const userid = userMap.get(socket.id); // 연결 해제된 사용자 ID 가져오기
             if (userid) {
-                io.emit("userStatus", `${userid} 님이 퇴장했습니다.`);
-                userMap.delete(socket.id); // 연결 해제 시 매핑 삭제
+                io.emit("userStatus", `${userid} 님이 퇴장했습니다.`); // 사용자 상태 알림
+                userMap.delete(socket.id); // 매핑에서 사용자 제거
             } else {
                 console.warn(`연결 해제된 사용자: socket.id=${socket.id} (userid 없음)`);
             }
             console.log("사용자가 연결 해제되었습니다:", socket.id);
         });
 
-        // 방 생성
+        // 방 참가 처리
+        socket.on("joinRoom", ({ roomId, userId }) => {
+            const room = rooms.find(room => room.id === roomId); // 방 ID로 방 찾기
+
+            if (room) {
+                // 방 정원 초과 여부 확인
+                if (room.participants.length >= (room.maxParticipants || 4)) {
+                    socket.emit("roomJoinError", { message: "방 정원이 초과되었습니다." });
+                    return;
+                }
+
+                // 참가자를 방에 추가
+                room.participants.push({ userId });
+                console.log(`방에 참가: roomId=${roomId}, userId=${userId}`);
+
+                // 사용자에게 방 참가 성공 알림
+                socket.emit("roomJoined", room);
+
+                // 모든 사용자에게 업데이트된 방 목록 알림
+                io.emit("updateRoomList", rooms);
+            } else {
+                socket.emit("roomJoinError", { message: "방을 찾을 수 없습니다." });
+            }
+        });
+
+        // 방 생성 처리
         socket.on("createRoom", (roomData) => {
-            const roomId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const roomId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`; // 고유 방 ID 생성
             const newRoom = {
                 id: roomId,
                 ...roomData,
-                participants: [{ userId: roomData.host }],
+                participants: [{ userId: roomData.host }], // 방장 추가
             };
 
-            rooms.push(newRoom);
+            rooms.push(newRoom); // 방 목록에 추가
+            console.log(`방 생성 완료: roomId=${roomId}, title=${roomData.title}`);
 
-            // 방 생성자에게만 게임 방으로 이동 명령
+            // 방 생성자에게 방 참가 성공 알림
             socket.emit("roomJoined", newRoom);
 
-            // 모든 사용자에게 방 생성 알림
+            // 모든 사용자에게 새 방 정보 알림
             io.emit("roomCreated", newRoom);
         });
 
-        // 방 목록 요청
+        // 방 목록 요청 처리
         socket.on("requestRoomList", () => {
-            socket.emit("updateRoomList", rooms);
+            socket.emit("updateRoomList", rooms); // 현재 방 목록 전송
         });
     });
 };
