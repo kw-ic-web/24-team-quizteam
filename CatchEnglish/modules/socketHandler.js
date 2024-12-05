@@ -24,6 +24,12 @@ const socketHandler = (server) => {
             }
         });
 
+        // 클라이언트 요청에 따라 사용자 정보 반환
+        socket.on("request user info", () => {
+            const userId = userMap.get(socket.id) || "Guest";
+            socket.emit("user info", { userId });
+        });
+
         // 채팅 메시지 처리
         socket.on("chatMessage", (data) => {
             const userid = userMap.get(socket.id) || "알 수 없는 사용자";
@@ -42,7 +48,6 @@ const socketHandler = (server) => {
             }
         });
 
-        
         // 사용자 연결 해제 처리
         socket.on("disconnect", () => {
             const userid = userMap.get(socket.id);
@@ -55,6 +60,7 @@ const socketHandler = (server) => {
             console.log("사용자가 연결 해제되었습니다:", socket.id);
         });
 
+        // 방 생성
         socket.on("createRoom", (roomData) => {
             const roomId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             const newRoom = {
@@ -64,7 +70,6 @@ const socketHandler = (server) => {
             };
 
             rooms.push(newRoom);
-
 
             // 방 생성자에게만 게임 방으로 이동 명령
             socket.emit("roomJoined", newRoom);
