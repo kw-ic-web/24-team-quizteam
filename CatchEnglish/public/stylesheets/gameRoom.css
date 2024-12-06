@@ -30,6 +30,8 @@ body {
     flex-direction: column;
     color: #000000;
     position: relative;
+    margin-right: 2px;
+    margin-left: 2px;
 }
 
 .player-image {
