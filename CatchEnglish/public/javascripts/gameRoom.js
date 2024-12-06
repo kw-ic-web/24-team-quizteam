@@ -163,12 +163,14 @@ socket.on("quizEnd", () => {
 });
 
 
-/**
- * 페이지 로드 시 실행
- */
 document.addEventListener("DOMContentLoaded", async () => {
-    questions = await fetchQuestions(); // 문제 데이터 가져오기
-    loadQuestion(); // 첫 번째 문제 표시
+    const startQuizButton = document.getElementById("start-quiz-btn");
+
+    startQuizButton.addEventListener("click", async () => {
+        questions = await fetchQuestions(); // 문제 데이터 가져오기
+        loadQuestion(); // 첫 번째 문제 표시
+        startQuizButton.style.display = "none"; // 시작하기 버튼 숨기기
+    });
 
     // 서버에 사용자 등록 요청
     const storedUserId = localStorage.getItem("userid") || "Guest";
