@@ -403,12 +403,14 @@ document.addEventListener("DOMContentLoaded", function () {
     // 서버로 방 목록 요청
     socket.emit("requestRoomList"); // 방 목록 요청
 
-    // 서버에서 방 목록 수신
+
+    //방 목록 업데이트
     socket.on("updateRoomList", (updatedRooms) => {
         console.log("초기 방 목록:", updatedRooms);
-        rooms = updatedRooms;
+        rooms = updatedRooms.filter(room => !room.isStarted); // 시작되지 않은 방만 필터링
         updateRoomsDisplay(); // 방 목록 UI 업데이트
     });
+    
 
     initializeEmptySlots();
     updateRoomsDisplay();

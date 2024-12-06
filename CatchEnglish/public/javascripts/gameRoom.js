@@ -167,9 +167,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     const startQuizButton = document.getElementById("start-quiz-btn");
 
     startQuizButton.addEventListener("click", async () => {
-        questions = await fetchQuestions(); // 문제 데이터 가져오기
-        loadQuestion(); // 첫 번째 문제 표시
-        startQuizButton.style.display = "none"; // 시작하기 버튼 숨기기
+        const { roomId } = getQueryParams();
+
+        // 서버에 게임 시작 이벤트 전송
+        socket.emit("startGame", { roomId });
+
+        // 문제 데이터를 가져와 로드
+        questions = await fetchQuestions(); 
+        loadQuestion();
+
+        // 시작하기 버튼 숨기기
+        startQuizButton.style.display = "none";
     });
 
     // 서버에 사용자 등록 요청
@@ -180,3 +188,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     socket.emit("request user info");
     socket.emit("requestRanking");
 });
+

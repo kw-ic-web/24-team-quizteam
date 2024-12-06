@@ -172,6 +172,15 @@ const socketHandler = (server) => {
                 console.warn(`방을 찾을 수 없습니다: roomId=${roomId}`);
             }
         });
+
+        //게임 시작 처리
+        socket.on("startGame", ({ roomId }) => {
+            const room = rooms.find(r => r.id === roomId);
+            if (room) {
+                room.isStarted = true; // 게임 시작 상태로 변경
+                io.emit("updateRoomList", rooms); // 업데이트된 방 목록을 클라이언트로 전송
+            }
+        });
         
 
          // 퀴즈 종료 처리
