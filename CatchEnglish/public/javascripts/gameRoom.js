@@ -61,11 +61,12 @@ function loadQuestion() {
 document.querySelector(".input-box").addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
         const message = e.target.value.trim();
+        const { roomId } = getQueryParams();
         if (message) {
             const question = questions[currentQuestionIndex];
 
             // 채팅 메시지 서버로 전송
-            socket.emit("chatMessage", { userId: currentUser?.userId || "알 수 없는 사용자", message });
+            socket.emit("chatMessage", { roomId, message });
 
             // 정답 제출
             socket.emit("check answer", {
@@ -109,6 +110,24 @@ socket.on("chatMessage", (data) => {
     chatBox.appendChild(messageDiv);
     chatBox.scrollTop = chatBox.scrollHeight; // 채팅창 스크롤을 최신 메시지로 이동
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+    const { roomId } = getQueryParams(); // 현재 방 ID 가져오기
+    const storedUserId = localStorage.getItem("userid") || "Guest";
+
+    // 방에 참가 요청
+    socket.emit("joinRoom", { roomId, userId: storedUserId });
+
+    // 서버로부터 사용자 상태 수신
+    socket.on("userStatus", (status) => {
+        const chatBox = document.querySelector("#chat-messages");
+        const statusMessage = document.createElement("div");
+        statusMessage.classList.add("status-message");
+        statusMessage.textContent = status;
+        chatBox.appendChild(statusMessage);
+    });
+});
+
 
 /**
  * 방 나가기 버튼 처리

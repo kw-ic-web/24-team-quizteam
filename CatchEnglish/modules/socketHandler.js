@@ -31,7 +31,7 @@ const socketHandler = (server) => {
                     .map(([userId, score]) => ({ userId, score }));
 
                 socket.emit("updateRanking", ranking); // 새로 등록된 사용자에게 순위 전송
-                io.emit("userStatus", `${userid} 님이 입장했습니다.`);
+
             } else {
                 console.warn(`userid가 제공되지 않았습니다: socket.id=${socket.id}`);
             }
@@ -44,10 +44,10 @@ const socketHandler = (server) => {
         });
 
         // 채팅 메시지 처리
-        socket.on("chatMessage", (data) => {
-            const userid = userMap.get(socket.id) || "알 수 없는 사용자"; // 사용자 ID 가져오기
-            console.log(`메시지 수신: ${userid}: ${data.message}`);
-            io.emit("chatMessage", { user: userid, message: data.message }); // 메시지를 모든 사용자에게 전송
+        socket.on("chatMessage", ({roomId, message}) => {
+            const userId = userMap.get(socket.id) || "알 수 없는 사용자"; // 사용자 ID 가져오기
+            console.log(`메시지 수신: roomId=${roomId}, userId=${userId}, message=${message}`);
+            io.to(roomId).emit("chatMessage", { user: userId, message });        
         });
 
         // 정답 확인 처리
@@ -85,7 +85,6 @@ const socketHandler = (server) => {
         socket.on("disconnect", () => {
             const userid = userMap.get(socket.id); // 연결 해제된 사용자 ID 가져오기
             if (userid) {
-                io.emit("userStatus", `${userid} 님이 퇴장했습니다.`); // 사용자 상태 알림
                 userMap.delete(socket.id); // 매핑에서 사용자 제거
             } else {
                 console.warn(`연결 해제된 사용자: socket.id=${socket.id} (userid 없음)`);
@@ -105,11 +104,13 @@ const socketHandler = (server) => {
                 }
 
                 // 참가자를 방에 추가
+                socket.join(roomId);
                 room.participants.push({ userId });
                 console.log(`방에 참가: roomId=${roomId}, userId=${userId}`);
 
                 // 사용자에게 방 참가 성공 알림
                 socket.emit("roomJoined", room);
+                io.to(roomId).emit("userStatus", `${userId} 님이 방에 참가했습니다.`);
 
                 // 초기 점수 0으로 세팅 (이미 등록된 사용자면 무시)
                 if (!userScores.has(userId)) {
@@ -165,6 +166,8 @@ const socketHandler = (server) => {
                         console.log(`참가자가 없어 방이 삭제되었습니다: roomId=${roomId}`);
                     }
                 }
+                // 방 나간 유저 알림
+                io.to(roomId).emit("userStatus", `${userId} 님이 방에서 나갔습니다.`);
         
                 // 모든 클라이언트에게 업데이트된 방 목록 전송
                 io.emit("updateRoomList", rooms);

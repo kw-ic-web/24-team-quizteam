@@ -186,7 +186,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     socket.on("updateRoomList", (updatedRooms) => {
         console.log("서버에서 받은 방 목록:", updatedRooms); // 서버에서 받은 데이터 확인
-        rooms = updatedRooms; // 방 목록 동기화
+        rooms = updatedRooms.filter(room => !room.isStarted);
         updateRoomsDisplay(); // 화면에 방 목록 업데이트
     });
 
@@ -195,14 +195,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const start = currentPage * roomsPerPage;
         const end = start + roomsPerPage;
         const visibleRooms = rooms.slice(start, end); // 현재 페이지의 방 목록 가져오기
-
+    
         // 현재 페이지에 표시할 방 정보를 동적으로 추가
         visibleRooms.forEach(room => {
             const roomSlot = document.createElement("div");
-            roomSlot.className = "room-slot"; // 방 슬롯 클래스
+            roomSlot.className = "room-slot";
             roomSlot.dataset.roomId = room.id;
-            roomSlot.dataset.gameType = room.gameType; // 게임 유형 저장
-            roomSlot.dataset.difficulty = room.difficulty; // 난이도 저장
+    
             roomSlot.innerHTML = `
                 <div class="room-info">
                     <div class="game-type-label ${getDifficultyClass(room.difficulty)}">${room.gameType}</div>
@@ -216,55 +215,32 @@ document.addEventListener("DOMContentLoaded", function () {
                     <button class="enter-btn">입장</button>  
                 </div>
             `;
-
-            const enterButton = roomSlot.querySelector(".enter-btn");
-            enterButton.addEventListener("click", async () => {
-                const roomId = roomSlot.dataset.roomId; // 데이터 속성에서 방 ID 가져오기
-                const gameType = roomSlot.dataset.gameType; // 데이터 속성에서 게임 유형 가져오기
-                const difficulty = roomSlot.dataset.difficulty; // 데이터 속성에서 난이도 가져오기
-
-
-                console.log(`방 입장 요청: roomId=${roomId}, gameType=${gameType}, difficulty=${difficulty}`);
-
-                // 방 입장 요청
-                socket.emit("joinRoom", { roomId, userId: userName});
-
-                try {
-                    const response = await fetch(`/api/rooms/${roomId}`, {
-                        method: "GET",
-                        headers: {
-                            "Authorization": `Bearer ${localStorage.getItem("token")}`,
-                        },
-                    });
-
-                    if (response.ok) {
-                        const roomDetails = await response.json();
-                        console.log("서버에서 받은 방 정보:", roomDetails);
-
-                        // 서버에서 가져온 정보를 기준으로 유효성 검증
-                        const validGameType = roomDetails.gameType || gameType;
-                        const validDifficulty = roomDetails.difficulty || difficulty;
-
-                        // 게임 방으로 리다이렉트
-                        window.location.href = `/gameRoom.html?roomId=${roomId}&gameType=${encodeURIComponent(validGameType)}&difficulty=${encodeURIComponent(validDifficulty)}`;
-                    }
-                } catch (error) {
-                }
+    
+            // 개별 방의 "입장" 버튼 클릭 이벤트 처리
+            roomSlot.querySelector(".enter-btn").addEventListener("click", () => {
+                const roomId = room.id;
+                const userId = localStorage.getItem("userid");
+    
+                // 방 참가 요청
+                socket.emit("joinRoom", { roomId, userId });
+    
+                // 게임 방으로 리다이렉트
+                window.location.href = `/gameRoom.html?roomId=${roomId}&gameType=${encodeURIComponent(room.gameType)}&difficulty=${encodeURIComponent(room.difficulty)}`;
             });
-
-
-            roomsContainer.appendChild(roomSlot); // 방 슬롯을 컨테이너에 추가
+    
+            roomsContainer.appendChild(roomSlot);
         });
-
+    
         // 남은 슬롯을 빈 슬롯으로 채우기
         for (let i = visibleRooms.length; i < roomsPerPage; i++) {
             const emptySlot = document.createElement("div");
             emptySlot.className = "room-slot empty"; // 빈 슬롯 클래스
             roomsContainer.appendChild(emptySlot);
         }
-
-        updatePaginationButtons(); // 페이지네이션 버튼 상태 업데이트
+    
+        updatePaginationButtons(); // 페이지네이션 상태 업데이트
     }
+    
 
 
     function updatePaginationButtons() {
