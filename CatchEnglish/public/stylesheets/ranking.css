@@ -1,0 +1,90 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    background-image: url("/images/background.png");
+}
+
+.ranking-container {
+    text-align: center;
+    width: 60%;
+    height: 60%;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.title {
+    font-size: 80px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    margin-top: 15px;
+}
+
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 2.2em;
+
+}
+
+.ranking-table thead {
+    background-color: #FFB246;
+}
+
+.ranking-table thead th:first-child {
+    border-top-left-radius: 25px; /* 왼쪽 상단 모서리 둥글게 */
+}
+
+.ranking-table thead th:last-child {
+    border-top-right-radius: 25px; /* 오른쪽 상단 모서리 둥글게 */
+}
+
+.head {
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.ranking-table th, .ranking-table td {
+    padding: 30px;
+    text-align: center;
+}
+
+.ranking-table tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+.ranking-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+
+.ranking-table th {
+    font-weight: bold;
+}
+
+
+.leave-room {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+  }
+
+#leave-room-btn {
+    background-color: #ffa07a;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1em;
+}
