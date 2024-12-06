@@ -39,7 +39,13 @@ const socketHandler = (server) => {
         // 채팅 메시지 처리
         socket.on("chatMessage", ({ roomId, message }) => {
             const userId = userMap.get(socket.id) || "알 수 없는 사용자";
-            io.to(roomId).emit("chatMessage", { user: userId, message });
+            if (roomId) {
+                // 특정 방에 메시지 전달
+                io.to(roomId).emit("chatMessage", { user: userId, message });
+            } else {
+                // 대기방(Global Chat)
+                io.emit("chatMessage", { user: userId, message });
+            }
         });
 
         // 정답 확인 처리
