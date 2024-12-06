@@ -7,7 +7,7 @@
 var app = require('../app');
 var debug = require('debug')('catchenglish:server');
 var http = require('http');
-const socketHandler = require("../modules/socketHandler");
+const { socketHandler }= require("../modules/socketHandler");
 
 /**
  * Get port from environment and store in Express.

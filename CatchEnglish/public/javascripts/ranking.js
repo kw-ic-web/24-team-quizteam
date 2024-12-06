@@ -1,23 +1,14 @@
 document.addEventListener("DOMContentLoaded", async () => {
     const rankingBody = document.getElementById("ranking-body");
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-        alert("로그인이 필요합니다.");
-        window.location.href = "/login.html";
-        return;
-    }
 
     try {
         // 서버에서 순위 데이터 가져오기
         const response = await fetch("/api/users/ranking", {
             method: "GET",
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
         });
 
         if (!response.ok) {
+            console.error("순위 데이터를 가져오지 못했습니다:", response.status, response.statusText);
             throw new Error("순위 데이터를 가져오는 데 실패했습니다.");
         }
 
@@ -28,9 +19,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             .map(
                 (user, index) => `
         <tr>
-            <td>${user.name || user.userid}</td>
-            <td>${user.correctAnswers} 문제</td>
-            <td>${user.correctAnswers * 10} 점</td>
+            <td>${user.userId}</td>
+            <td>${user.correctAnswers || 0} 문제</td>
+            <td>${user.correctAnswers * 10 || 0} 점</td>
             <td>${index + 1}</td>
         </tr>
     `

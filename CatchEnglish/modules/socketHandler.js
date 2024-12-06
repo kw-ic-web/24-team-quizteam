@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const userMap = new Map(); // socket.id와 userid 매핑
 const rooms = []; // 생성된 방 목록 저장
+const userScores = new Map(); // userId와 정답 수 매핑
 
 const socketHandler = (server) => {
     const io = new Server(server, {
@@ -17,8 +18,20 @@ const socketHandler = (server) => {
         socket.on("register", (userid) => {
             if (userid) {
                 userMap.set(socket.id, userid); // socket.id와 userid 매핑
+
+                if (!userScores.has(userid)) {
+                    userScores.set(userid, 0); // 초기 점수 설정
+                }
+
                 console.log(`사용자 등록 완료: socket.id=${socket.id}, userid=${userid}`);
-                io.emit("userStatus", `${userid} 님이 입장했습니다.`); // 다른 사용자에게 상태 알림
+
+                // 초기 순위 업데이트
+                const ranking = Array.from(userScores)
+                    .sort(([, a], [, b]) => b - a) // 정답 수 기준 내림차순 정렬
+                    .map(([userId, score]) => ({ userId, score }));
+
+                socket.emit("updateRanking", ranking); // 새로 등록된 사용자에게 순위 전송
+                io.emit("userStatus", `${userid} 님이 입장했습니다.`);
             } else {
                 console.warn(`userid가 제공되지 않았습니다: socket.id=${socket.id}`);
             }
@@ -39,14 +52,33 @@ const socketHandler = (server) => {
 
         // 정답 확인 처리
         socket.on("check answer", (data) => {
-            const { answer, correctAnswer, userId } = data;
+            const { answer, correctAnswer } = data;
+            const userId = userMap.get(socket.id);
 
-            // 정답 여부 확인
             if (answer.trim().toLowerCase() === correctAnswer.toLowerCase()) {
-                io.emit("answer result", { isCorrect: true, userId });
-            } else {
-                io.emit("answer result", { isCorrect: false, userId });
+                if (userId) {
+                    userScores.set(userId, (userScores.get(userId) || 0) + 1); // 정답 수 증가
+                    console.log(`정답 처리 완료: userId=${userId}, score=${userScores.get(userId)}`);
+                }
+
+                // 순위 업데이트
+                const ranking = Array.from(userScores)
+                    .sort(([, a], [, b]) => b - a) // 정답 수 기준 내림차순 정렬
+                    .map(([userId, score]) => ({ userId, score }));
+
+                io.emit("updateRanking", ranking); // 모든 클라이언트에 순위 전송
             }
+
+            io.emit("answer result", { isCorrect: answer.trim().toLowerCase() === correctAnswer.toLowerCase(), userId });
+        });
+
+        // 순위 요청 처리
+        socket.on("requestRanking", () => {
+            const ranking = Array.from(userScores)
+                .sort(([, a], [, b]) => b - a) // 정답 수 기준 내림차순 정렬
+                .map(([userId, score]) => ({ userId, score }));
+
+            socket.emit("updateRanking", ranking); // 요청한 클라이언트에 순위 전송
         });
 
         // 사용자 연결 해제 처리
@@ -79,12 +111,25 @@ const socketHandler = (server) => {
                 // 사용자에게 방 참가 성공 알림
                 socket.emit("roomJoined", room);
 
+                // 초기 점수 0으로 세팅 (이미 등록된 사용자면 무시)
+                if (!userScores.has(userId)) {
+                    userScores.set(userId, 0);
+                }
+
+                // 현재 방의 순위 업데이트
+                const ranking = Array.from(userScores)
+                    .sort(([, a], [, b]) => b - a) // 정답 수 기준 내림차순 정렬
+                    .map(([userId, score]) => ({ userId, score }));
+
+                io.to(roomId).emit("updateRanking", ranking); // 방에 있는 사용자들에게만 순위 전송
+
                 // 모든 사용자에게 업데이트된 방 목록 알림
                 io.emit("updateRoomList", rooms);
             } else {
                 socket.emit("roomJoinError", { message: "방을 찾을 수 없습니다." });
             }
         });
+
 
         // 방 생성 처리
         socket.on("createRoom", (roomData) => {
@@ -129,6 +174,18 @@ const socketHandler = (server) => {
         });
         
 
+         // 퀴즈 종료 처리
+         socket.on("endQuiz", () => {
+            const ranking = Array.from(userScores)
+                .sort(([, a], [, b]) => b - a) // 점수 기준 내림차순 정렬
+                .map(([userId, score]) => ({ userId, score }));
+
+            console.log("퀴즈 종료. 최종 순위:", ranking);
+
+            // 모든 사용자에게 퀴즈 종료 이벤트 전송
+            io.emit("quizEnd");
+        });
+
         // 방 목록 요청 처리
         socket.on("requestRoomList", () => {
             socket.emit("updateRoomList", rooms); // 현재 방 목록 전송
@@ -136,4 +193,4 @@ const socketHandler = (server) => {
     });
 };
 
-module.exports = socketHandler;
+module.exports = {socketHandler,userScores};

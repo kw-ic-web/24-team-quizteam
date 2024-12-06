@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const router = express.Router();
 const path = require('path');
+const { userScores }=require("../../modules/socketHandler");
 require("dotenv").config();
 
 const SECRET_KEY = "your_secret_key"; // JWT 생성 시 사용할 비밀 키 (환경 변수로 설정하는 것이 좋습니다)
@@ -139,18 +140,24 @@ router.post("/update-character", verifyToken, async (req, res) => {
 });
 
 // 순위 데이터 반환 API
-router.get("/ranking", verifyToken, async (req, res) => {
+router.get("/ranking", (req, res) => {
     try {
-        const users = await User.find({}, "userid name correctAnswers")
-            .sort({ correctAnswers: -1 }) // 맞춘 문제 순으로 내림차순 정렬
-            .limit(10); // 상위 10명만 반환
+        const ranking = Array.from(userScores)
+            .sort(([, a], [, b]) => b - a) // 점수 기준 내림차순 정렬
+            .map(([userId, score], index) => ({
+                userId,
+                correctAnswers: score,
+                rank: index + 1,
+            }));
 
-        res.status(200).json(users);
+        console.log("최종 순위 데이터:", ranking);
+        res.json(ranking); // 클라이언트에 순위 데이터 전송
     } catch (error) {
-        console.error("순위 데이터 가져오기 오류:", error);
+        console.error("순위 데이터 처리 중 오류:", error);
         res.status(500).json({ error: "순위 데이터를 가져오는 중 오류가 발생했습니다." });
     }
 });
+
 
 
 router.post("/increment-correct-answers", verifyToken, async (req, res) => {

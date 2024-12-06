@@ -76,6 +76,12 @@ document.querySelector(".input-box").addEventListener("keypress", (e) => {
             });
 
             e.target.value = ""; // 입력 필드 초기화
+
+            // 마지막 문제 체크
+            if (currentQuestionIndex >= questions.length - 1) {
+                // 서버에 퀴즈 종료 요청
+                socket.emit("endQuiz");
+            }
         }
     }
 });
@@ -122,6 +128,27 @@ document.getElementById("leave-room-btn").addEventListener("click", () => {
     }
 });
 
+socket.on("updateRanking", (ranking) => {
+    const rankingList = document.querySelector(".ranking-list");
+
+    if (!rankingList) {
+        console.error("ranking-list 요소를 찾을 수 없습니다.");
+        return;
+    }
+
+    rankingList.innerHTML = ""; // 기존 순위 초기화
+
+    ranking.forEach((user, index) => {
+        const rankItem = document.createElement("li");
+        rankItem.textContent = `${index + 1}. ${user.userId} - ${user.score}점`;
+        rankingList.appendChild(rankItem);
+    });
+
+    console.log("순위가 업데이트되었습니다:", ranking);
+});
+
+
+
 /**
  * 서버에서 사용자 정보 수신
  */
@@ -129,6 +156,12 @@ socket.on("user info", (userInfo) => {
     currentUser = userInfo;
     console.log("현재 사용자 정보:", currentUser);
 });
+
+socket.on("quizEnd", () => {
+    // 퀴즈 종료 시 ranking.html로 이동
+    window.location.href = "/ranking.html";
+});
+
 
 /**
  * 페이지 로드 시 실행
@@ -143,4 +176,5 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 서버로부터 사용자 정보 요청
     socket.emit("request user info");
+    socket.emit("requestRanking");
 });
