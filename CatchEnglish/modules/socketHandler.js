@@ -2,6 +2,7 @@ const { Server } = require("socket.io");
 const userMap = new Map(); // socket.id와 userid 매핑
 const rooms = []; // 생성된 방 목록 저장
 const userScores = new Map(); // userId와 정답 수 매핑
+const User = require("../mongoose/schemas/user");
 
 const socketHandler = (server) => {
     const io = new Server(server, {
@@ -13,6 +14,7 @@ const socketHandler = (server) => {
 
     io.on("connection", (socket) => {
         console.log("새로운 사용자가 연결되었습니다:", socket.id);
+        socket.emit("updateRoomList", rooms);
 
         // 사용자 등록 처리
         socket.on("register", (userid) => {
@@ -52,21 +54,31 @@ const socketHandler = (server) => {
                 id: roomId,
                 ...roomData,
                 hostId: roomData.host,
-                participants: [{ userId: roomData.host }],
+                participants: [{ userId: roomData.host, character: roomData.hostCharacter || "A" }],
                 isStarted: false,
             };
 
             rooms.push(newRoom);
             socket.emit("roomJoined", newRoom);
             io.emit("roomCreated", newRoom);
+            socket.join(roomId);
+            io.to(roomId).emit("updatePlayers", newRoom.participants);
         });
 
         // 방 참가 처리
-        socket.on("joinRoom", ({ roomId, userId }) => {
+        socket.on("joinRoom", ({ roomId, userId, character }) => {
             const room = rooms.find((room) => room.id === roomId);
 
             if (!room) {
                 socket.emit("roomJoinError", { message: "방을 찾을 수 없습니다." });
+                return;
+            }
+
+            // 이미 참가 중인지 확인
+            const isAlreadyJoined = room.participants.some((participant) => participant.userId === userId);
+            if (isAlreadyJoined) {
+                console.warn(`이미 방에 참가 중입니다: roomId=${roomId}, userId=${userId}`);
+                socket.emit("roomJoinError", { message: "이미 방에 참가 중입니다." });
                 return;
             }
 
@@ -75,29 +87,37 @@ const socketHandler = (server) => {
                 return;
             }
 
+            const defaultCharacter = "defaultCharacter"; // 기본 캐릭터 설정
+            character = character || defaultCharacter;
+
             socket.join(roomId);
-            room.participants.push({ userId });
+            room.participants.push({ userId, character });
             io.to(roomId).emit("userStatus", `${userId} 님이 방에 참가했습니다.`);
+            io.to(roomId).emit("updatePlayers", room.participants);
         });
 
         // 방 나가기 처리
         socket.on("leaveRoom", ({ roomId, userId }) => {
             const room = rooms.find((r) => r.id === roomId);
+            if (room) {
+                room.participants = room.participants.filter((p) => p.userId !== userId);
+                console.log(`사용자가 방에서 나갔습니다: roomId=${roomId}, userId=${userId}`);
 
-            if (!room) {
-                socket.emit("leaveRoomError", { message: "방을 찾을 수 없습니다." });
-                return;
+                socket.leave(roomId);
+
+                if (room.participants.length === 0) {
+                    const roomIndex = rooms.findIndex((r) => r.id === roomId);
+                    if (roomIndex > -1) {
+                        rooms.splice(roomIndex, 1);
+                        console.log(`참가자가 없어 방이 삭제되었습니다: roomId=${roomId}`);
+                    }
+                }
+
+                io.emit("updateRoomList", rooms);
+                io.to(roomId).emit("updatePlayers", room.participants);
+            } else {
+                console.warn(`방을 찾을 수 없습니다: roomId=${roomId}`);
             }
-
-            room.participants = room.participants.filter((p) => p.userId !== userId);
-
-            if (room.participants.length === 0) {
-                const roomIndex = rooms.findIndex((r) => r.id === roomId);
-                rooms.splice(roomIndex, 1);
-            }
-
-            io.to(roomId).emit("userStatus", `${userId} 님이 방에서 나갔습니다.`);
-            io.emit("updateRoomList", rooms);
         });
 
         // 게임 시작 처리
@@ -172,8 +192,23 @@ const socketHandler = (server) => {
         // 연결 해제 처리
         socket.on("disconnect", () => {
             const userid = userMap.get(socket.id);
-            userMap.delete(socket.id);
-            console.log(`사용자가 연결 해제되었습니다: ${socket.id}, userId=${userid}`);
+            if (userid) {
+                rooms.forEach((room) => {
+                    const index = room.participants.findIndex((p) => p.userId === userid);
+                    if (index !== -1) {
+                        room.participants.splice(index, 1);
+                        console.log(`연결 해제된 사용자가 방에서 제거되었습니다: roomId=${room.id}, userId=${userid}`);
+
+                        io.to(room.id).emit("updatePlayers", room.participants);
+                    }
+                });
+
+                io.emit("userStatus", `${userid} 님이 퇴장했습니다.`);
+                userMap.delete(socket.id);
+            } else {
+                console.warn(`연결 해제된 사용자: socket.id=${socket.id} (userid 없음)`);
+            }
+            console.log("사용자가 연결 해제되었습니다:", socket.id);
         });
     });
 };

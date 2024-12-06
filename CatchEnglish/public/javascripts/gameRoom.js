@@ -57,7 +57,60 @@ function loadQuestion() {
     });
 }
 
-// 정답 제출 처리
+function initializeEmptyPlayerSlots() {
+    const playersContainer = document.querySelector(".players");
+    const maxPlayers = 4; // 최대 플레이어 수
+
+    playersContainer.innerHTML = ""; // 기존 슬롯 초기화
+    for (let i = 0; i < maxPlayers; i++) {
+        const playerSlot = document.createElement("div");
+        playerSlot.className = "player";
+        playerSlot.innerHTML = `
+            <img src="/images/character_no.png" alt="Player ${i + 1}" class="player-image">
+            <div class="player-name">Player${i + 1}</div>
+        `;
+        playersContainer.appendChild(playerSlot);
+    }
+}
+
+socket.on("updatePlayers", (participants) => {
+    console.log("수신한 참가자 데이터:", participants);
+
+    const playersContainer = document.querySelector(".players");
+    if (!playersContainer) {
+        console.error("플레이어 컨테이너를 찾을 수 없습니다.");
+        return;
+    }
+
+    // 기존 슬롯 초기화
+    playersContainer.innerHTML = "";
+
+    // 최대 플레이어 수
+    const maxPlayers = 4;
+
+    // 참가자 정보를 슬롯에 추가
+    for (let i = 0; i < maxPlayers; i++) {
+        const playerSlot = document.createElement("div");
+        playerSlot.className = "player";
+
+        if (participants[i]) {
+            const player = participants[i];
+            playerSlot.innerHTML = `
+                <img src="/images/character_${player.character}.png" alt="${player.userId}" class="player-image">
+                <div class="player-name">${player.userId}</div>
+            `;
+        } else {
+            // 빈 슬롯
+            playerSlot.innerHTML = `
+                <img src="/images/character_no.png" alt="Empty Slot" class="player-image">
+                <div class="player-name">Player${i + 1}</div>
+            `;
+        }
+
+        playersContainer.appendChild(playerSlot);
+    }
+});
+
 document.querySelector(".input-box").addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
         const message = e.target.value.trim();
@@ -88,7 +141,6 @@ document.querySelector(".input-box").addEventListener("keypress", (e) => {
     }
 });
 
-// 서버로부터 정답 결과 수신
 socket.on("answer result", ({ isCorrect, userId }) => {
     if (isCorrect) {
         alert(`${userId}님이 정답을 맞혔습니다!`);
@@ -97,7 +149,6 @@ socket.on("answer result", ({ isCorrect, userId }) => {
     }
 });
 
-// 서버로부터 채팅 메시지 수신
 socket.on("chatMessage", (data) => {
     const chatBox = document.querySelector("#chat-messages");
     if (!chatBox) {
@@ -115,9 +166,10 @@ socket.on("chatMessage", (data) => {
 document.addEventListener("DOMContentLoaded", () => {
     const { roomId } = getQueryParams(); // 현재 방 ID 가져오기
     const storedUserId = localStorage.getItem("userid") || "Guest";
+    const character = localStorage.getItem("character") || "A";
 
     // 방에 참가 요청
-    socket.emit("joinRoom", { roomId, userId: storedUserId });
+    socket.emit("joinRoom", { roomId, userId: storedUserId, character });
 
     // 서버로부터 사용자 상태 수신
     socket.on("userStatus", (status) => {
@@ -128,19 +180,12 @@ document.addEventListener("DOMContentLoaded", () => {
         chatBox.appendChild(statusMessage);
     });
 });
-
-/**
- * 방 나가기 버튼 처리
- */
 document.getElementById("leave-room-btn").addEventListener("click", () => {
     const { roomId } = getQueryParams();
     const userId = localStorage.getItem("userid");
 
     if (roomId && userId) {
-        // 서버에 방 나가기 이벤트 전송
         socket.emit("leaveRoom", { roomId, userId });
-
-        // 대기실로 리다이렉트
         window.location.href = "/waitingroom.html";
     } else {
         alert("방 정보를 확인할 수 없습니다.");
@@ -165,21 +210,16 @@ socket.on("updateRanking", (ranking) => {
 
     console.log("순위가 업데이트되었습니다:", ranking);
 });
-
-/**
- * 서버에서 사용자 정보 수신
- */
 socket.on("user info", (userInfo) => {
     currentUser = userInfo;
     console.log("현재 사용자 정보:", currentUser);
 });
 
 socket.on("quizEnd", () => {
-    const { roomId } = getQueryParams(); // 현재 방의 roomId 가져오기
-    const userId = localStorage.getItem("userid"); // 로컬 스토리지에서 userId 가져오기
+    const { roomId } = getQueryParams();
+    const userId = localStorage.getItem("userid");
 
     if (roomId && userId) {
-        // roomId와 userId를 포함하여 ranking.html로 이동
         window.location.href = `/ranking.html?roomId=${roomId}&userId=${userId}`;
     } else {
         console.error("roomId 또는 userId를 찾을 수 없습니다. 기본 ranking.html로 이동합니다.");
@@ -224,6 +264,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.error("문제를 가져오는데 실패했습니다:", error);
         }
     });
+    
+    const character = localStorage.getItem("character") || "A";
+    socket.emit("register", storedUserId);
+
+    socket.emit("joinRoom", {
+        roomId: getQueryParams().roomId,
+        userId: storedUserId,
+        character,
+    });
 
     socket.on("gameStarted", () => {
         console.log("게임이 시작되었습니다!");
@@ -238,7 +287,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     });
 
-    // 서버로부터 사용자 정보 요청 및 순위 요청
     socket.emit("request user info");
     socket.emit("requestRanking");
+    initializeEmptyPlayerSlots(); 
 });
