@@ -226,16 +226,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 const gameType = roomSlot.dataset.gameType; // 데이터 속성에서 게임 유형 가져오기
                 const difficulty = roomSlot.dataset.difficulty; // 데이터 속성에서 난이도 가져오기
 
-                if (!roomId || !gameType || !difficulty) {
-                    console.error("유효하지 않은 방 데이터:", { roomId, gameType, difficulty });
-                    alert("방 정보를 가져오는 중 오류가 발생했습니다.");
-                    return;
-                }
 
                 console.log(`방 입장 요청: roomId=${roomId}, gameType=${gameType}, difficulty=${difficulty}`);
 
                 // 방 입장 요청
-                socket.emit("joinRoom", { roomId, userId: userName });
+                socket.emit("joinRoom", { roomId, userId: userName});
 
                 try {
                     const response = await fetch(`/api/rooms/${roomId}`, {
@@ -255,13 +250,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         // 게임 방으로 리다이렉트
                         window.location.href = `/gameRoom.html?roomId=${roomId}&gameType=${encodeURIComponent(validGameType)}&difficulty=${encodeURIComponent(validDifficulty)}`;
-                    } else {
-                        console.error("방 정보 요청 실패:", response.status);
-                        alert("방에 입장할 수 없습니다. 다시 시도해주세요.");
                     }
                 } catch (error) {
-                    console.error("방 입장 중 오류 발생:", error);
-                    alert("방에 입장하는 중 문제가 발생했습니다.");
                 }
             });
 
