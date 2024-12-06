@@ -13,7 +13,6 @@ const socketHandler = (server) => {
 
     io.on("connection", (socket) => {
         console.log("새로운 사용자가 연결되었습니다:", socket.id);
-        socket.emit("updateRoomList", rooms);
 
         // 사용자 등록 처리
         socket.on("register", (userid) => {
@@ -40,16 +39,89 @@ const socketHandler = (server) => {
         socket.on("chatMessage", ({ roomId, message }) => {
             const userId = userMap.get(socket.id) || "알 수 없는 사용자";
             if (roomId) {
-                // 특정 방에 메시지 전달
                 io.to(roomId).emit("chatMessage", { user: userId, message });
             } else {
-                // 대기방(Global Chat)
                 io.emit("chatMessage", { user: userId, message });
             }
         });
 
+        // 방 생성 처리
+        socket.on("createRoom", (roomData) => {
+            const roomId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const newRoom = {
+                id: roomId,
+                ...roomData,
+                hostId: roomData.host,
+                participants: [{ userId: roomData.host }],
+                isStarted: false,
+            };
+
+            rooms.push(newRoom);
+            socket.emit("roomJoined", newRoom);
+            io.emit("roomCreated", newRoom);
+        });
+
+        // 방 참가 처리
+        socket.on("joinRoom", ({ roomId, userId }) => {
+            const room = rooms.find((room) => room.id === roomId);
+
+            if (!room) {
+                socket.emit("roomJoinError", { message: "방을 찾을 수 없습니다." });
+                return;
+            }
+
+            if (room.participants.length >= (room.maxParticipants || 4)) {
+                socket.emit("roomJoinError", { message: "방 정원이 초과되었습니다." });
+                return;
+            }
+
+            socket.join(roomId);
+            room.participants.push({ userId });
+            io.to(roomId).emit("userStatus", `${userId} 님이 방에 참가했습니다.`);
+        });
+
+        // 방 나가기 처리
+        socket.on("leaveRoom", ({ roomId, userId }) => {
+            const room = rooms.find((r) => r.id === roomId);
+
+            if (!room) {
+                socket.emit("leaveRoomError", { message: "방을 찾을 수 없습니다." });
+                return;
+            }
+
+            room.participants = room.participants.filter((p) => p.userId !== userId);
+
+            if (room.participants.length === 0) {
+                const roomIndex = rooms.findIndex((r) => r.id === roomId);
+                rooms.splice(roomIndex, 1);
+            }
+
+            io.to(roomId).emit("userStatus", `${userId} 님이 방에서 나갔습니다.`);
+            io.emit("updateRoomList", rooms);
+        });
+
+        // 게임 시작 처리
+        socket.on("startGame", ({ roomId }) => {
+            const room = rooms.find((r) => r.id === roomId);
+            const userId = userMap.get(socket.id);
+
+            if (!room) {
+                socket.emit("startGameError", { message: "방을 찾을 수 없습니다." });
+                return;
+            }
+
+            if (room.hostId !== userId) {
+                socket.emit("startGameError", { message: "게임 시작 권한이 없습니다." });
+                return;
+            }
+
+            room.isStarted = true;
+            io.to(roomId).emit("gameStarted", { message: "게임이 시작되었습니다!" });
+            io.emit("updateRoomList", rooms);
+        });
+
         // 정답 확인 처리
-        socket.on("check answer", ({ answer, correctAnswer, questionIndex, userId, roomId }) => {
+        socket.on("check answer", ({ answer, correctAnswer, userId, roomId }) => {
             const room = rooms.find((r) => r.id === roomId);
 
             if (!room) {
@@ -81,72 +153,20 @@ const socketHandler = (server) => {
             socket.emit("updateRanking", ranking);
         });
 
-        // 방 생성 처리
-        socket.on("createRoom", (roomData) => {
-            const roomId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            const newRoom = {
-                id: roomId,
-                ...roomData,
-                participants: [{ userId: roomData.host }],
-            };
-
-            rooms.push(newRoom);
-            socket.emit("roomJoined", newRoom);
-            io.emit("roomCreated", newRoom);
-        });
-
-        // 방 참가 처리
-        socket.on("joinRoom", ({ roomId, userId }) => {
-            const room = rooms.find((room) => room.id === roomId);
-
+        // 퀴즈 종료 처리
+        socket.on("endQuiz", ({ roomId }) => {
+            const room = rooms.find((r) => r.id === roomId);
             if (!room) {
-                socket.emit("roomJoinError", { message: "방을 찾을 수 없습니다." });
+                console.error(`방을 찾을 수 없습니다: roomId=${roomId}`);
                 return;
             }
 
-            if (room.participants.length >= (room.maxParticipants || 4)) {
-                socket.emit("roomJoinError", { message: "방 정원이 초과되었습니다." });
-                return;
-            }
-
-            socket.join(roomId);
-            room.participants.push({ userId });
-            io.to(roomId).emit("userStatus", `${userId} 님이 방에 참가했습니다.`);
-        });
-
-        // 방 나가기 처리
-        socket.on("leaveRoom", ({ roomId, userId }) => {
-            const room = rooms.find((r) => r.id === roomId);
-            room.participants = room.participants.filter((p) => p.userId !== userId);
-
-            if (room.participants.length === 0) {
-                const roomIndex = rooms.findIndex((r) => r.id === roomId);
-                rooms.splice(roomIndex, 1);
-            }
-
-            io.to(roomId).emit("userStatus", `${userId} 님이 방에서 나갔습니다.`);
-        });
-
-        // 게임 시작 처리
-        socket.on("startGame", ({ roomId }) => {
-            const room = rooms.find((r) => r.id === roomId);
-
-            if (room) {
-                room.isStarted = true;
-                io.emit("updateRoomList", rooms);
-            }
+            io.to(roomId).emit("quizEnd");
         });
 
         // 방 목록 요청 처리
         socket.on("requestRoomList", () => {
-            socket.emit("updateRoomList", rooms); // 항상 최신 방 목록 반환
-        });
-
-        // 퀴즈 종료 처리
-        socket.on("endQuiz", ({ roomId }) => {
-            const room = rooms.find((r) => r.id === roomId);
-
-            io.to(roomId).emit("quizEnd");
+            socket.emit("updateRoomList", rooms);
         });
 
         // 연결 해제 처리

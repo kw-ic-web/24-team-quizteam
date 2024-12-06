@@ -38,7 +38,7 @@ function loadQuestion() {
     const choicesContainer = document.getElementById("choices");
 
     if (questions.length === 0) {
-        questionText.textContent = "문제를 불러오는 중 오류가 발생했습니다.";
+        questionText.textContent = "권한이 없습니다.";
         return;
     }
 
@@ -129,7 +129,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-
 /**
  * 방 나가기 버튼 처리
  */
@@ -167,8 +166,6 @@ socket.on("updateRanking", (ranking) => {
     console.log("순위가 업데이트되었습니다:", ranking);
 });
 
-
-
 /**
  * 서버에서 사용자 정보 수신
  */
@@ -193,26 +190,55 @@ socket.on("quizEnd", () => {
 document.addEventListener("DOMContentLoaded", async () => {
     const startQuizButton = document.getElementById("start-quiz-btn");
 
-    startQuizButton.addEventListener("click", async () => {
-        const { roomId } = getQueryParams();
-
-        // 서버에 게임 시작 이벤트 전송
-        socket.emit("startGame", { roomId });
-
-        // 문제 데이터를 가져와 로드
-        questions = await fetchQuestions(); 
-        loadQuestion();
-
-        // 시작하기 버튼 숨기기
-        startQuizButton.style.display = "none";
-    });
+    // 방 정보 및 방장 여부 확인
+    const storedUserId = localStorage.getItem("userid") || "Guest";
+    const { roomId } = getQueryParams();
 
     // 서버에 사용자 등록 요청
-    const storedUserId = localStorage.getItem("userid") || "Guest";
     socket.emit("register", storedUserId);
 
-    // 서버로부터 사용자 정보 요청
+    // 서버로부터 방 정보 요청
+    socket.emit("requestRoomInfo", { roomId });
+
+    // 방 정보 수신 후 방장 여부에 따라 게임 시작 버튼 표시
+    socket.on("roomInfo", ({ hostId }) => {
+        if (storedUserId !== hostId) {
+            // 방장이 아니라면 버튼 숨기기
+            startQuizButton.style.display = "none";
+        }
+    });
+
+    // 게임 시작 버튼 클릭 시 동작
+    startQuizButton.addEventListener("click", async () => {
+        try {
+            // 서버에 게임 시작 이벤트 전송
+            socket.emit("startGame", { roomId });
+
+            // 문제 데이터를 가져와 로드
+            const questions = await fetchQuestions();
+            loadQuestion(questions[0], 0);
+
+            // 방장에게만 버튼 숨기기
+            startQuizButton.style.display = "none";
+        } catch (error) {
+            console.error("문제를 가져오는데 실패했습니다:", error);
+        }
+    });
+
+    socket.on("gameStarted", () => {
+        console.log("게임이 시작되었습니다!");
+        // fetchQuestions로 문제를 가져온 후 로드
+        fetchQuestions().then((fetchedQuestions) => {
+            if (fetchedQuestions.length > 0) {
+                questions = fetchedQuestions;
+                loadQuestion(questions[0], 0); // 첫 번째 문제 로드
+            } else {
+                console.error("문제를 가져오지 못했습니다.");
+            }
+        });
+    });
+
+    // 서버로부터 사용자 정보 요청 및 순위 요청
     socket.emit("request user info");
     socket.emit("requestRanking");
 });
-
