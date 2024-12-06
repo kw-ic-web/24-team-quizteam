@@ -65,7 +65,7 @@ router.post("/login", async (req, res) => {
         const token = jwt.sign({ userid: user.userid }, SECRET_KEY, { expiresIn: '1h' });
 
         // JSON으로 응답
-        res.json({ userid: user.userid, token });
+        res.json({ userid: user.userid, token, character: user.character });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "서버 오류 발생" });
