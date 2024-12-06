@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const logoutBtn = document.getElementById("logoutBtn");
     const socket = io();
 
+
     const userid = localStorage.getItem("userid"); // 로컬 스토리지에서 userid 가져오기
     if (userid) {
         socket.emit("register", userid); // 서버에 userid 전달

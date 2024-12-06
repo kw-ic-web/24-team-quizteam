@@ -13,6 +13,7 @@ const socketHandler = (server) => {
 
     io.on("connection", (socket) => {
         console.log("새로운 사용자가 연결되었습니다:", socket.id);
+        socket.emit("updateRoomList", rooms);
 
         // 사용자 등록 처리
         socket.on("register", (userid) => {
@@ -128,6 +129,11 @@ const socketHandler = (server) => {
                 room.isStarted = true;
                 io.emit("updateRoomList", rooms);
             }
+        });
+
+        // 방 목록 요청 처리
+        socket.on("requestRoomList", () => {
+            socket.emit("updateRoomList", rooms); // 항상 최신 방 목록 반환
         });
 
         // 퀴즈 종료 처리
