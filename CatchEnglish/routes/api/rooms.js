@@ -16,13 +16,6 @@ router.post('/create', verifyToken, async (req, res) => {
             return res.status(400).json({ message: "모든 필드를 입력해주세요." });
         }
 
-        // 중복 제목 확인
-        const existingRoom = await Room.findOne({ title });
-        if (existingRoom) {
-            console.warn(`중복된 방 제목 요청: title=${title}`);
-            return res.status(400).json({ message: "이미 동일한 제목의 방이 존재합니다." });
-        }
-
         // 고유 roomId 생성
         const roomId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const newRoom = await Room.create({

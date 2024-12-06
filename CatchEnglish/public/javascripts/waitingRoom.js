@@ -139,15 +139,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     window.location.href = url;
                 } else {
                     console.error("방 생성 응답이 올바르지 않습니다:", data);
-                    alert("방 생성 중 문제가 발생했습니다.");
                 }
             } else {
                 console.error("방 생성 요청 실패:", response.status, response.statusText);
-                alert(`방 생성 실패: ${response.statusText}`);
             }
         } catch (error) {
             console.error("방 생성 요청 중 오류 발생:", error);
-            alert("방 생성 요청 중 문제가 발생했습니다. 네트워크 상태를 확인해주세요.");
         }
 
         // 추가적으로 Socket.io를 사용할 경우:
