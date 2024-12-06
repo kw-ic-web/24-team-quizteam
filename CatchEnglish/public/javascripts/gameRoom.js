@@ -74,6 +74,7 @@ document.querySelector(".input-box").addEventListener("keypress", (e) => {
                 correctAnswer: question.answer,
                 questionIndex: currentQuestionIndex,
                 userId: currentUser?.userId || "알 수 없는 사용자",
+                roomId,
             });
 
             e.target.value = ""; // 입력 필드 초기화
@@ -81,7 +82,7 @@ document.querySelector(".input-box").addEventListener("keypress", (e) => {
             // 마지막 문제 체크
             if (currentQuestionIndex >= questions.length - 1) {
                 // 서버에 퀴즈 종료 요청
-                socket.emit("endQuiz");
+                socket.emit("endQuiz", { roomId });
             }
         }
     }
