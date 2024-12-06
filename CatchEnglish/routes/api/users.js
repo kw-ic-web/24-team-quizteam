@@ -172,6 +172,15 @@ router.post("/increment-correct-answers", verifyToken, async (req, res) => {
     }
 });
 
+router.post("/reset-scores", (req, res) => {
+    userScores.forEach((value, key) => {
+        userScores.set(key, 0); // 점수 초기화
+    });
+
+    console.log("모든 사용자의 점수가 초기화되었습니다.");
+    res.status(200).json({ message: "점수가 초기화되었습니다." });
+});
+
 router.post("/end-game", verifyToken, async (req, res) => {
     const { userid } = req.user;
     const { isCorrect } = req.body; // 마지막 정답 여부

@@ -158,10 +158,17 @@ socket.on("user info", (userInfo) => {
 });
 
 socket.on("quizEnd", () => {
-    // 퀴즈 종료 시 ranking.html로 이동
-    window.location.href = "/ranking.html";
-});
+    const { roomId } = getQueryParams(); // 현재 방의 roomId 가져오기
+    const userId = localStorage.getItem("userid"); // 로컬 스토리지에서 userId 가져오기
 
+    if (roomId && userId) {
+        // roomId와 userId를 포함하여 ranking.html로 이동
+        window.location.href = `/ranking.html?roomId=${roomId}&userId=${userId}`;
+    } else {
+        console.error("roomId 또는 userId를 찾을 수 없습니다. 기본 ranking.html로 이동합니다.");
+        window.location.href = "/ranking.html";
+    }
+});
 
 document.addEventListener("DOMContentLoaded", async () => {
     const startQuizButton = document.getElementById("start-quiz-btn");
