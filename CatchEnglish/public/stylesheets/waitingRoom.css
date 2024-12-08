@@ -73,6 +73,10 @@ body {
   gap: 5px; 
 }
 
+.chat-box::-webkit-scrollbar {
+  display: none; 
+}
+
 .chat-message {
   padding: 5px 10px;
   background-color: #f1f1f1;
